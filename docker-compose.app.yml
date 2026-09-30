@@ -1,0 +1,59 @@
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    hostname: pmis-app
+    container_name: pmis-app
+    restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ASPNETCORE_HTTPS_PORTS: "8081"
+      ASPNETCORE_HTTPS_PORT: "${APP_HTTPS_PORT}"
+      ASPNETCORE_Kestrel__Certificates__Default__Path: /https/aspnetapp.pfx
+      ASPNETCORE_Kestrel__Certificates__Default__Password: ${DEV_CERT_PASSWORD}
+      ConnectionStrings__PmisDatabase: "Server=sqlserver,1433;Database=PMIS;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True"
+      ConnectionStrings__MongoDb: "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/?authSource=admin"
+      MongoDb__DatabaseName: "pmis"
+      MinIO__Endpoint: "minio:9000"
+      MinIO__AccessKey: ${MINIO_ROOT_USER}
+      MinIO__SecretKey: ${MINIO_ROOT_PASSWORD}
+      MinIO__BucketName: "pmis-attachments"
+      MinIO__UseSsl: "false"
+      ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD}"
+      ClamAv__Host: "clamav"
+      ClamAv__Port: "3310"
+      Nafath__IamSsoUrl: ${Nafath__IamSsoUrl}
+      Nafath__GetTokenUrl: ${Nafath__GetTokenUrl}
+      Nafath__UserClaimsUrl: ${Nafath__UserClaimsUrl}
+      Nafath__IamLoginUrl: ${Nafath__IamLoginUrl}
+      Nafath__IamLogoutUrl: ${Nafath__IamLogoutUrl}
+      Nafath__AppKey: ${Nafath__AppKey}
+      Nafath__BypassNationalId: ${Nafath__BypassNationalId:-}
+      EmailSms__LmsBaseUrl: ${EmailSms__LmsBaseUrl}
+      EmailSms__SendMailPath: ${EmailSms__SendMailPath}
+      EmailSms__MailWsKey: ${EmailSms__MailWsKey}
+      EmailSms__MailUsername: ${EmailSms__MailUsername}
+      EmailSms__MailPassword: ${EmailSms__MailPassword}
+      EmailSms__MailFrom: ${EmailSms__MailFrom}
+      EmailSms__SendSmsPath: ${EmailSms__SendSmsPath}
+      EmailSms__SmsWsKey: ${EmailSms__SmsWsKey}
+      EmailSms__AppName: ${EmailSms__AppName}
+    ports:
+      - "${APP_HTTP_PORT}:8080"
+      - "${APP_HTTPS_PORT}:8081"
+    volumes:
+      - ${DEV_CERT_DIR}:/https:ro

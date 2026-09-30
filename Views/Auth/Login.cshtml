@@ -1,0 +1,1799 @@
+﻿@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="csrf-token" content="@ViewBag.AntiForgeryToken">
+<meta name="otp-resend-cooldown-seconds" content="@ViewBag.OtpResendCooldownSeconds">
+<title>تسجيل الدخول — خدمة طلب شراء رخص نظام إدارة المشاريع</title>
+<link rel="icon" type="image/svg+xml" href="/assets/favicon.svg" asp-append-version="true">
+<link rel="stylesheet" href="/assets/styles.css" asp-append-version="true">
+<script src="/assets/lockdown.js" asp-append-version="true" defer></script>
+<script>
+  try{ if(localStorage.getItem('pmis-theme')==='dark') document.documentElement.setAttribute('data-theme','dark'); }catch(e){}
+  try{ const b=localStorage.getItem('pmis-brand'); if(b!=='blue') document.documentElement.setAttribute('data-brand', 'amana'); }catch(e){}
+</script>
+<style>
+  html{height:auto;min-height:100%;overflow-y:auto;touch-action:pan-y;overscroll-behavior:auto;}
+  body{
+    min-height:100vh;
+    height:auto;overflow-y:auto;overflow-x:hidden;
+    touch-action:pan-y;
+    overscroll-behavior:auto;
+    display:flex;
+    align-items:safe center;
+    justify-content:center;
+    padding:28px 16px;
+    background:var(--bg);
+    position:relative;
+  }
+  body::before{
+    content:"";position:fixed;z-index:0;pointer-events:none;
+    border-radius:50%;
+    will-change:transform,opacity;
+    top:-10%;left:-10%;width:60vw;height:60vw;
+    background:radial-gradient(circle, var(--bg-glow-a) 0%, transparent 70%);
+    animation:bg-breathe-a 16s ease-in-out infinite;
+  }
+  @@keyframes bg-breathe-a{
+    0%,100%{transform:scale(1) translate(0,0);opacity:.85;}
+    50%{transform:scale(1.15) translate(-2%,2%);opacity:1;}
+  }
+  .login-layout,.theme-toggle-float{position:relative;z-index:1;}
+  .theme-toggle-float{
+    position:fixed;bottom:18px;right:18px;
+    width:40px;height:40px;border-radius:11px;border:1px solid var(--border);
+    background:var(--card);color:var(--text-mid);display:flex;align-items:center;justify-content:center;
+    cursor:pointer;box-shadow:var(--shadow);
+  }
+  :root[data-theme="dark"] .theme-toggle-float{border-color:transparent;}
+  .theme-toggle-float svg{width:18px;height:18px;}
+
+  .login-layout{display:flex;align-items:center;justify-content:center;gap:56px;direction:ltr;}
+  .brand-panel{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;
+    flex-shrink:0;
+    width:280px;
+    position:relative;
+    transform:translateX(-34px);
+  }
+  .brand-panel .brand-logo{width:280px;height:auto;}
+  .brand-panel .brand-logo svg{width:100%;height:auto;display:block;transform:scale(2.4);}
+  .brand-panel .brand-wordmark{width:320px;height:auto;margin-top:56px;}
+  .brand-panel .brand-wordmark svg{width:100%;height:auto;display:block;}
+  .brand-panel .nafath-logo{
+    width:400px;height:auto;display:none;
+    position:absolute;top:50%;left:50%;
+    transform:translate(-50%,-50%) translateX(-24px);
+  }
+  .brand-panel .nafath-logo svg{width:100%;height:auto;display:block;}
+  .brand-panel .nafath-logo.active{display:block;}
+
+  @@media (max-width:980px){
+    .login-layout{flex-direction:column;gap:26px;}
+  }
+
+  .auth-shell{width:100%;max-width:452px;min-width:452px;}
+  @@media (max-width:980px){
+    .auth-shell{min-width:0;}
+  }
+  .auth-card{
+    direction:rtl;
+    background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);
+    border-radius:22px;box-shadow:var(--shadow-lg);
+    border:1px solid var(--glass-border);
+    animation:auth-card-fadein 1.6s ease;
+    display:flex;flex-direction:column;
+    max-height:calc(100vh - 56px);
+  }
+  @@keyframes auth-card-fadein{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+  .auth-top{
+    padding:30px 28px 4px;position:relative;color:var(--text-dark);
+    text-align:center;flex-shrink:0;
+    border-radius:22px 22px 0 0;overflow:hidden;
+  }
+  .auth-top h1{font-size:clamp(11px,4vw,20px);margin:0;font-weight:800;white-space:nowrap;}
+
+  .auth-bottom{
+    padding:22px 28px 30px;position:relative;
+    overflow-y:auto;border-radius:0 0 22px 22px;
+    scrollbar-width:none;-ms-overflow-style:none;
+  }
+  .auth-bottom::-webkit-scrollbar{display:none;}
+
+  .lstepper{display:flex;flex-direction:row;align-items:center;justify-content:center;gap:0;margin-bottom:22px;}
+  .lnode{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .lcircle{
+    width:28px;height:28px;border-radius:50%;color:var(--text-faint);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;padding:4px;
+  }
+  .lnode.active .lcircle,.lnode.done .lcircle{color:var(--brand-900);}
+  .llabel{font-size:10.5px;font-weight:700;color:var(--text-light);}
+  .lnode.active .llabel,.lnode.done .llabel{color:var(--text-dark);}
+  .lline{width:52px;height:2px;background:var(--border);margin:0 6px 18px;position:relative;overflow:hidden;}
+  .lline::after{
+    content:"";position:absolute;inset:0;background:var(--brand-800);
+    transform:scaleX(0);transform-origin:right center;
+    transition:transform .5s ease;
+  }
+  .lnode.done + .lline::after{transform:scaleX(1);}
+
+  .lpanel{display:none;}
+  .lpanel.active{display:block;animation:fadein .2s ease;}
+  .panel-hint{font-size:12.5px;color:var(--text-mid);margin:0 0 16px;text-align:center;}
+
+  .role-list{display:flex;flex-direction:column;gap:10px;margin-bottom:20px;}
+  .role-opt{
+    display:flex;align-items:center;gap:12px;
+    appearance:none;-webkit-appearance:none;
+    border:1.5px solid transparent;border-radius:13px;padding:13px 14px;
+    cursor:pointer;background:none;text-align:right;width:100%;
+    outline:none;
+  }
+  .role-opt .role-ic{
+    width:38px;height:38px;border-radius:10px;color:var(--brand-800);
+    display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .role-opt .role-ic svg{width:19px;height:19px;}
+  .role-opt .role-text{flex:1;display:flex;flex-direction:column;gap:2px;}
+  .role-opt .role-text b{font-size:13.5px;color:var(--text-dark);}
+  .role-opt .role-text span{font-size:11.5px;color:var(--text-mid);}
+  .role-opt .role-check{
+    width:20px;height:20px;border-radius:50%;border:2px solid var(--text-mid);
+    display:flex;align-items:center;justify-content:center;color:#fff;flex-shrink:0;
+  }
+  .role-opt .role-check svg{width:11px;height:11px;opacity:0;}
+  .role-opt.selected{background:var(--brand-tint);}
+  .role-opt.selected .role-ic{background:var(--brand-800);color:#fff;}
+  .role-opt.selected .role-check{background:var(--brand-800);border-color:var(--brand-800);}
+  .role-opt.selected .role-check svg{opacity:1;}
+
+  .pill-btn{
+    display:flex;align-items:center;justify-content:center;gap:8px;
+    width:100%;padding:13px;border-radius:12px;border:none;
+    font-size:13.5px;font-weight:700;cursor:pointer;
+  }
+  .pill-primary{background:var(--brand-800);color:#fff;}
+  .pill-primary:hover{background:var(--brand-900);}
+  .pill-primary:disabled{opacity:.4;cursor:not-allowed;}
+  .pill-primary svg{width:16px;height:16px;}
+
+  .method-list{display:flex;flex-direction:column;gap:10px;}
+  .method-row{overflow:hidden;padding-top:4px;transition:max-height .35s ease, opacity .3s ease, margin-top .35s ease;max-height:600px;opacity:1;}
+  .method-list.has-active .method-row:not(.is-active){max-height:0;opacity:0;margin-top:-10px;pointer-events:none;}
+  .method-opt{
+    display:flex;align-items:center;gap:12px;
+    appearance:none;-webkit-appearance:none;
+    border:1.5px solid transparent;border-radius:13px;padding:13px 14px;
+    cursor:pointer;background:none;text-align:right;width:100%;
+    margin-top:-2px;
+    transition:border-color .15s ease, background-color .15s ease;
+    outline:none;
+  }
+  .method-opt.active{border-color:var(--brand-800);}
+  .method-ic{width:36px;height:36px;border-radius:9px;color:var(--brand-800);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:visible;}
+  .method-opt.active .method-ic{background:var(--brand-800);color:#fff;}
+  .method-ic svg{width:18px;height:18px;}
+  .method-ic svg.ic-nafath{width:34px;height:23.5px;}
+
+  :root[data-theme="dark"] .role-opt:not(.selected),
+  :root[data-theme="dark"] .method-opt:not(.active){border-color:transparent;}
+  .method-text{flex:1;display:flex;flex-direction:column;gap:2px;}
+  .method-text b{font-size:13px;color:var(--text-dark);}
+  .method-text span{font-size:11px;color:var(--text-mid);}
+  .chev{width:16px;height:16px;color:var(--text-faint);flex-shrink:0;transition:transform .15s;}
+  .method-opt.active .chev{transform:rotate(-90deg);color:var(--brand-800);}
+  .method-opt[data-method="email"],.method-opt[data-method="ad"]{cursor:not-allowed;}
+
+  .method-form{display:none;padding:14px 2px 2px;}
+  .method-form.open{display:block;animation:fadein .2s ease;}
+  .field-pill{
+    display:flex;align-items:center;gap:9px;border:1px solid var(--border);border-radius:11px;
+    padding:11px 13px;background:none;margin-bottom:10px;
+  }
+  .field-pill .fic{color:var(--text-light);display:flex;flex-shrink:0;}
+  .field-pill .fic svg{width:17px;height:17px;}
+  .field-pill input{border:none;background:transparent;outline:none;font-family:inherit;font-size:13px;flex:1;color:var(--text-dark);}
+  .field-pill-readonly{background:var(--surface-2,rgba(127,127,127,.06));}
+  .field-pill-readonly span:not(.fic){font-size:13px;color:var(--text-mid);}
+  .toggle-eye{border:none;background:none;color:var(--text-light);cursor:pointer;display:flex;flex-shrink:0;}
+  .toggle-eye svg{width:16px;height:16px;}
+  .forgot-row{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .forgot-row a{font-size:12px;color:var(--brand-800);font-weight:700;}
+  .forgot-row .forgot-sep{font-size:12px;color:var(--text-light);}
+
+  .nafath-box{
+    text-align:center;background:var(--brand-tint);border-radius:12px;padding:20px;margin-top:6px;display:none;
+  }
+  .nafath-num{font-size:30px;font-weight:900;color:var(--brand-800);letter-spacing:2px;margin-bottom:8px;}
+  .nafath-box p{font-size:12px;color:var(--text-mid);margin:0 0 12px;}
+
+  .nafath-success{display:none;text-align:center;padding:6px 0;}
+  .nafath-success .tick{
+    color:var(--brand-800);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 12px;
+  }
+  .nafath-success .tick svg{width:40px;height:40px;}
+
+  .back-link{
+    display:flex;align-items:center;justify-content:center;gap:6px;
+    margin-top:16px;border:none;background:none;color:var(--text-mid);
+    font-size:12.5px;font-weight:700;cursor:pointer;width:100%;padding:8px;
+  }
+  .back-link:hover{color:var(--brand-800);}
+  .back-link svg{width:15px;height:15px;}
+
+  .reg-back{
+    display:flex;align-items:center;gap:6px;border:none;background:none;color:var(--text-mid);
+    font-size:12px;font-weight:700;cursor:pointer;padding:0 0 16px;font-family:inherit;
+  }
+  .reg-back:hover{color:var(--brand-800);}
+  .reg-back svg{width:14px;height:14px;}
+  .reg-lead{font-size:12px;color:var(--text-mid);margin:0 0 18px;text-align:center;line-height:1.6;}
+  .reg-lead b{color:var(--text-dark);}
+
+  .avatar-row{display:flex;justify-content:center;margin-bottom:20px;}
+  .avatar-upload{
+    display:block;position:relative;width:78px;height:78px;
+    cursor:pointer;
+  }
+  .avatar-photo{
+    position:absolute;inset:0;border-radius:50%;overflow:hidden;
+    background:var(--surface);border:1.5px dashed var(--border);
+    display:flex;align-items:center;justify-content:center;color:var(--text-light);
+  }
+  .avatar-upload svg{width:24px;height:24px;}
+  .avatar-upload .cam-badge{
+    position:absolute;bottom:-2px;left:-2px;width:26px;height:26px;border-radius:50%;
+    background:var(--brand-800);color:#fff;display:flex;align-items:center;justify-content:center;
+    border:2.5px solid var(--card);
+  }
+  .avatar-upload .cam-badge svg{width:12px;height:12px;}
+  .avatar-hint{font-size:10.5px;color:var(--text-faint);text-align:center;margin-top:8px;}
+
+  .field-group{margin-bottom:14px;}
+  .field-row{display:flex;flex-direction:column;gap:14px;margin-bottom:14px;}
+  .field-row .field-group{flex:1;margin-bottom:0;}
+  .field-label{display:block;font-size:11.5px;font-weight:700;color:var(--text-mid);margin-bottom:6px;}
+  .field-label .req{color:var(--danger,#c0392b);margin-inline-start:2px;}
+  .field-hint{font-size:10.5px;color:var(--text-faint);margin-top:5px;}
+
+  .signin-row{text-align:center;margin-top:16px;font-size:12px;color:var(--text-mid);}
+  .signin-row a{color:var(--brand-800);font-weight:700;}
+  .signin-row button{
+    background:none;border:none;padding:0;margin:0;font:inherit;cursor:pointer;
+    color:var(--brand-800);font-weight:700;
+  }
+
+  .verify-icon-wrap{display:flex;justify-content:center;margin-bottom:16px;}
+  .verify-icon{width:120px;height:120px;display:flex;align-items:center;justify-content:center;}
+  .verify-icon svg{width:85px;height:85px;}
+  .verify-title{text-align:center;font-size:17px;font-weight:800;color:var(--text-dark);margin:0 0 8px;}
+  .verify-sub{text-align:center;font-size:12px;line-height:1.65;color:var(--text-mid);margin:0 0 20px;}
+
+  .verify-dest-row{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+  .verify-dest{display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:9px 11px;}
+  .verify-dest .dic{width:20px;height:20px;color:var(--brand-800);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .verify-dest .dic svg{width:16px;height:16px;}
+  .verify-dest .dtext{flex:1;min-width:0;}
+  .verify-dest .dtext .dlabel{font-size:10.5px;color:var(--text-light);font-weight:600;}
+  .verify-dest .dtext .dvalue{font-size:12px;color:var(--text-dark);font-weight:700;direction:ltr;text-align:right;unicode-bidi:isolate;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;}
+  .verify-dest .dstatus{flex-shrink:0;color:var(--brand-800);}
+  .verify-dest .dstatus svg{width:16px;height:16px;}
+
+  .otp-block{margin-bottom:6px;border:0;padding:0;min-width:0;}
+  .otp-block-label{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:700;color:var(--text-mid);margin-bottom:9px;padding:0;width:100%;}
+  .otp-chan-ic{width:15px;height:15px;color:var(--brand-800);flex-shrink:0;}
+  .otp-chan-ic svg{width:100%;height:100%;display:block;}
+
+  .otp-inputs{display:flex;flex-direction:row-reverse;gap:5px;direction:ltr;margin-bottom:8px;width:100%;}
+  .otp-inputs input{
+    flex:1;width:0;min-width:0;height:44px;text-align:center;
+    font-family:inherit;font-size:16px;font-weight:700;color:var(--text-dark);
+    background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);
+    outline:none;transition:border-color .18s,background .18s,box-shadow .18s;
+  }
+  .otp-inputs input:focus{border-color:var(--brand-800);background:var(--card);box-shadow:0 0 0 3px var(--brand-tint);}
+  .otp-inputs input.filled{border-color:var(--brand-700);background:var(--card);}
+
+  @@keyframes verifyShake{
+    10%,90%{transform:translateX(-1px);}
+    20%,80%{transform:translateX(2px);}
+    30%,50%,70%{transform:translateX(-4px);}
+    40%,60%{transform:translateX(4px);}
+  }
+  .otp-inputs.shake{animation:verifyShake .5s;}
+  .otp-inputs.shake input{border-color:var(--danger,#c0392b);}
+
+  .otp-meta-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;min-height:18px;gap:8px;}
+  .otp-status-msg{font-size:11px;font-weight:600;color:var(--text-light);}
+  .otp-status-msg.err{color:var(--danger,#c0392b);}
+  .otp-resend{background:none;border:none;cursor:pointer;font-family:inherit;font-size:11px;font-weight:700;color:var(--brand-800);padding:0;}
+  .otp-resend:disabled{color:var(--text-faint);cursor:default;}
+  .otp-resend .timer{direction:ltr;unicode-bidi:isolate;font-variant-numeric:tabular-nums;}
+
+  @@media (max-width:1024px){
+    html{scrollbar-width:none;-ms-overflow-style:none;}
+    html::-webkit-scrollbar{display:none;}
+    body{padding:20px 16px;}
+    .theme-toggle-float{display:none;}
+    .login-layout{flex-direction:column;gap:20px;}
+    .brand-panel{flex-direction:row-reverse;width:auto;gap:12px;transform:none;}
+    .brand-panel .brand-logo{width:75px;}
+    .brand-panel .brand-wordmark{width:210px;margin-top:0;}
+    .brand-panel .nafath-logo{position:static;transform:none;width:320px;}
+    .auth-shell{max-width:380px;}
+    .auth-card{border-radius:18px;}
+    .auth-top{padding:22px 22px 4px;}
+    .auth-top h1{font-size:clamp(10px,3.2vw,15px);}
+    .auth-bottom{padding:18px 22px 24px;}
+    .lstepper{margin-bottom:16px;}
+    .lcircle{width:25px;height:25px;padding:3px;}
+    .llabel{font-size:9px;}
+    .lline{width:42px;margin:0 5px 15px;}
+    .panel-hint{font-size:11px;margin-bottom:13px;}
+    .role-list{gap:8px;margin-bottom:16px;}
+    .role-opt,.method-opt{padding:11px 12px;}
+    .role-opt .role-ic,.method-ic{width:33px;height:33px;}
+    .role-opt .role-ic svg,.method-ic svg{width:16px;height:16px;}
+    .method-ic svg.ic-nafath{width:30px;height:20.8px;}
+    .role-opt .role-text b{font-size:10.5px;}
+    .method-text b{font-size:11.5px;}
+    .role-text span,.method-text span{font-size:10px;}
+    .role-opt .role-check{width:18px;height:18px;}
+    .pill-btn{padding:12px;font-size:11.5px;}
+    .avatar-upload{width:66px;height:66px;}
+    .verify-icon{width:54px;height:54px;}
+    .verify-icon svg{width:40px;height:40px;}
+    .verify-title{font-size:15px;}
+    .verify-sub{font-size:11px;margin-bottom:16px;}
+    .verify-dest-row{gap:7px;margin-bottom:16px;}
+    .verify-dest{padding:8px 10px;}
+    .otp-block-label{font-size:10.5px;margin-bottom:7px;}
+    .otp-inputs{gap:4px;}
+    .otp-inputs input{height:38px;font-size:14px;}
+    .otp-meta-row{margin-bottom:16px;}
+  }
+  @@media (max-width:560px){
+    body{padding:16px 12px;}
+    .theme-toggle-float{bottom:12px;right:12px;width:36px;height:36px;}
+    .brand-panel{gap:10px;}
+    .brand-panel .brand-logo{width:50px;}
+    .brand-panel .brand-wordmark{width:126px;}
+    .brand-panel .nafath-logo{width:190px;}
+    .auth-shell{max-width:100%;}
+    .auth-card{border-radius:14px;}
+    .auth-top{padding:13px 14px 3px;}
+    .auth-top h1{font-size:clamp(10px,3.1vw,13px);}
+    .auth-bottom{padding:11px 14px 15px;}
+    .lstepper{margin-bottom:9px;}
+    .lcircle{width:20px;height:20px;padding:2px;}
+    .llabel{font-size:8.5px;}
+    .lline{width:24px;margin:0 4px 11px;}
+    .panel-hint{margin-bottom:8px;font-size:10px;}
+    .role-list{gap:6px;margin-bottom:11px;}
+    .method-list{gap:6px;}
+    .role-opt,.method-opt{padding:8px 10px;gap:9px;}
+    .role-opt .role-ic,.method-ic{width:27px;height:27px;}
+    .role-opt .role-ic svg,.method-ic svg{width:14px;height:14px;}
+    .method-ic svg.ic-nafath{width:25px;height:17.3px;}
+    .role-opt .role-text b{font-size:12.5px;}
+    .method-text b{font-size:12.5px;}
+    .role-text span,.method-text span{font-size:9px;}
+    .role-opt .role-check{width:16px;height:16px;}
+    .role-opt .role-check svg{width:9px;height:9px;}
+    .chev{width:13px;height:13px;}
+    .pill-btn{padding:10px;font-size:11px;gap:6px;}
+    .pill-btn svg{width:14px;height:14px;}
+    .field-pill{padding:9px 11px;margin-bottom:8px;}
+    .field-pill input{font-size:11px;}
+    .field-pill .fic svg{width:15px;height:15px;}
+    .back-link{font-size:10.5px;margin-top:12px;padding:6px;}
+    .back-link svg{width:13px;height:13px;}
+    .nafath-box{padding:11px;margin-top:4px;}
+    .nafath-num{font-size:18px;margin-bottom:3px;}
+    .nafath-box p{margin-bottom:6px;font-size:10px;}
+    .nafath-box svg{width:28px;height:28px;}
+    .nafath-success{padding:2px 0;}
+    .nafath-success .tick{margin-bottom:6px;}
+    .nafath-success .tick svg{width:26px;height:26px;}
+    .verify-icon{width:44px;height:44px;margin-bottom:2px;}
+    .verify-icon svg{width:32px;height:32px;}
+    .verify-icon-wrap{margin-bottom:10px;}
+    .verify-title{font-size:13.5px;margin-bottom:5px;}
+    .verify-sub{font-size:10px;margin-bottom:12px;}
+    .verify-dest-row{gap:6px;margin-bottom:12px;}
+    .verify-dest{padding:7px 9px;gap:8px;}
+    .verify-dest .dic{width:16px;height:16px;}
+    .verify-dest .dic svg{width:13px;height:13px;}
+    .verify-dest .dtext .dlabel{font-size:9px;}
+    .verify-dest .dtext .dvalue{font-size:10.5px;}
+    .verify-dest .dstatus svg{width:13px;height:13px;}
+    .otp-block{margin-bottom:3px;}
+    .otp-block-label{font-size:9.5px;gap:5px;margin-bottom:6px;}
+    .otp-chan-ic{width:12px;height:12px;}
+    .otp-inputs{gap:3px;margin-bottom:6px;}
+    .otp-inputs input{height:32px;font-size:12px;border-radius:7px;}
+    .otp-meta-row{margin-bottom:12px;min-height:14px;}
+    .otp-status-msg{font-size:9.5px;}
+    .otp-resend{font-size:9.5px;}
+  }
+
+  @@media (max-height:700px){
+    .brand-panel .nafath-logo{width:150px;}
+    .auth-top{padding:14px 16px 2px;}
+    .lstepper{margin-bottom:8px;}
+    .verify-icon-wrap{margin-bottom:6px;}
+    .verify-sub{margin-bottom:10px;}
+    .verify-dest-row{margin-bottom:10px;}
+    .otp-meta-row{margin-bottom:10px;}
+  }
+  @@media (max-height:600px){
+    .brand-panel .nafath-logo{width:120px;}
+    .auth-top h1{font-size:13px;}
+    .lstepper{margin-bottom:6px;}
+    .panel-hint{margin-bottom:6px;font-size:11.5px;}
+    .method-opt.active .method-text span{display:none;}
+    .nafath-box{padding:10px;}
+    .nafath-box p{font-size:11px;margin-bottom:6px;}
+    .verify-icon{width:36px;height:36px;}
+    .verify-icon svg{width:26px;height:26px;}
+    .verify-icon-wrap{margin-bottom:4px;}
+    .verify-title{font-size:12.5px;margin-bottom:3px;}
+    .verify-sub{font-size:9.5px;margin-bottom:8px;}
+    .verify-dest-row{margin-bottom:8px;}
+    .otp-meta-row{margin-bottom:8px;}
+  }
+</style>
+</head>
+<body>
+
+  <button type="button" class="theme-toggle-float" id="themeToggle" aria-label="تبديل المظهر"></button>
+
+  <div class="ctx-menu" id="ctxMenu">
+    <button type="button" class="ctx-menu-item" id="ctxRefreshBtn"><span id="ctxRefreshIcon"></span><span>تحديث</span></button>
+    <button type="button" class="ctx-menu-item" id="ctxBrandBtn"><span id="ctxBrandIcon"></span><span id="ctxBrandLabel"></span></button>
+    <button type="button" class="ctx-menu-item" id="ctxThemeBtn"><span id="ctxThemeIcon"></span><span id="ctxThemeLabel"></span></button>
+  </div>
+
+  <div class="login-layout">
+    <div class="brand-panel">
+      <div class="brand-logo">
+        <svg width="135" height="131" viewBox="-40 -40 135 131" xmlns="http://www.w3.org/2000/svg" style="background:transparent; overflow:visible;">
+        <style>
+          .brand-logo path{
+            transform-box: fill-box;
+            transform-origin: center;
+            fill-opacity:0;
+            stroke-opacity:0;
+            stroke-width:0.4;
+            stroke-linejoin:round;
+            stroke-linecap:round;
+            stroke-dasharray:1;
+            stroke-dashoffset:1;
+            opacity:0;
+            animation-duration: 1.3s, 4.2s;
+            animation-timing-function: ease-in-out, cubic-bezier(.37,0,.63,1);
+            animation-iteration-count: 1, infinite;
+            animation-fill-mode: both, forwards;
+            animation-name: logo-draw-once, logo-idle-breathe;
+          }
+          @@keyframes logo-draw-once{
+            0%{   opacity:0; stroke-opacity:0; stroke-dashoffset:1; fill-opacity:0; }
+            8%{   opacity:1; stroke-opacity:1; }
+            55%{  stroke-dashoffset:0; stroke-opacity:1; fill-opacity:0; }
+            75%{  stroke-opacity:1; fill-opacity:1; }
+            100%{ opacity:1; stroke-opacity:0; fill-opacity:1; }
+          }
+          @@keyframes logo-idle-breathe{
+            0%{   transform: scale(1);    opacity:1;    }
+            50%{  transform: scale(1.11); opacity:0.86; }
+            100%{ transform: scale(1);    opacity:1;    }
+          }
+          .brand-logo path:nth-of-type(1){ stroke:#007167; --d:0.0s; --idle-dur:4.2s; animation-delay: var(--d), calc(var(--d) + 1.3s); animation-duration: 1.3s, var(--idle-dur); }
+          .brand-logo path:nth-of-type(2){ stroke:#00958A; --d:0.15s; --idle-dur:4.6s; animation-delay: var(--d), calc(var(--d) + 1.3s); animation-duration: 1.3s, var(--idle-dur); }
+          .brand-logo path:nth-of-type(3){ stroke:#007167; --d:0.3s; --idle-dur:4.0s; animation-delay: var(--d), calc(var(--d) + 1.3s); animation-duration: 1.3s, var(--idle-dur); }
+          .brand-logo path:nth-of-type(4){ stroke:#6ABF4B; --d:0.45s; --idle-dur:4.8s; animation-delay: var(--d), calc(var(--d) + 1.3s); animation-duration: 1.3s, var(--idle-dur); }
+          .brand-logo path:nth-of-type(5){ stroke:#007167; --d:0.6s; --idle-dur:4.4s; animation-delay: var(--d), calc(var(--d) + 1.3s); animation-duration: 1.3s, var(--idle-dur); }
+          .brand-logo path:nth-of-type(6){ stroke:#00958A; --d:0.75s; --idle-dur:4.1s; animation-delay: var(--d), calc(var(--d) + 1.3s); animation-duration: 1.3s, var(--idle-dur); }
+        </style>
+        <path pathLength="1" fill="#007167" d="m33.472,50.5121l-0.023,-0.5103c-0.397,-8.0748 -2.141,-15.1291 -5.321,-21.6067l-0.706,-1.442l-0.707,1.442c-3.18,6.4554 -4.924,13.5319 -5.321,21.6067l-0.023,0.5103c1.966,0.3105 3.975,0.488 6.051,0.488c2.075,0 4.106,-0.1775 6.05,-0.488z"/>
+         <path pathLength="1" fill="#00958A" d="m6.908,21.0522c2.959,3.8599 7.287,9.8938 10.489,17.6359l0.949,2.3071l0.552,-2.4402c1.237,-5.4794 3.18,-10.4485 5.918,-15.1292l0.243,-0.4215l-0.287,-0.4215c-1.657,-2.4624 -3.511,-4.7916 -5.83,-7.3427c-1.656,-1.7525 -3.466,-3.505 -5.343,-5.1688l-0.552,-0.488l-0.53,0.5324c-2.738,2.7285 -4.924,5.5902 -6.713,8.7403l-0.265,0.4658l0.354,0.4215c0.331,0.4437 0.662,0.8874 1.015,1.3089z"/>
+         <path pathLength="1" fill="#007167" d="m16.649,49.4472l-0.066,-0.2662c-2.716,-11.3358 -8.214,-19.5215 -12.1,-24.6903l-0.861,-1.1535l-0.508,1.3532c-1.546,4.0817 -2.584,8.7181 -3.114,13.8203c3.997,5.0357 9.804,8.9178 16.649,10.9365z"/>
+         <path pathLength="1" fill="#6ABF4B" d="m21.857,12.5115c1.877,2.0631 3.511,4.0153 4.924,5.9674l0.64,0.8652l0.641,-0.8652c1.435,-1.9521 3.025,-3.8821 4.924,-5.9452c1.589,-1.6638 3.312,-3.34971 5.1,-4.94692l0.707,-0.64333l-0.751,-0.57677c-4.328,-3.34972 -8.302,-5.32405 -10.267,-6.21139l-0.332,-0.15529l-0.331,0.15529c-1.987,0.88734 -5.939,2.88386 -10.267,6.21139l-0.751,0.57677l0.707,0.64333c1.766,1.59721 3.466,3.26102 5.056,4.92472z"/>
+         <path pathLength="1" fill="#007167" d="m54.89,38.5107c-0.552,-5.1022 -1.59,-9.7608 -3.136,-13.8203l-0.507,-1.3532l-0.862,1.1535c-3.886,5.1688 -9.362,13.3323 -12.1,24.6903l-0.066,0.2662c6.823,-2.0187 12.652,-5.9008 16.671,-10.9365z"/>
+         <path pathLength="1" fill="#00958A" d="m35.902,15.2845c-2.297,2.5067 -4.195,4.9026 -5.829,7.3206l-0.287,0.4215l0.242,0.4214c2.738,4.703 4.659,9.6499 5.918,15.1292l0.552,2.4402l0.949,-2.3071c3.202,-7.742 7.508,-13.7538 10.467,-17.6137c0.353,-0.4437 0.706,-0.8652 1.059,-1.3088l0.354,-0.4215l-0.265,-0.4659c-1.789,-3.1501 -3.975,-6.0117 -6.713,-8.7403l-0.53,-0.5324l-0.552,0.488c-1.899,1.6638 -3.687,3.3941 -5.365,5.1688z"/>
+        </svg>
+      </div>
+      <script>
+        (function(){
+          var ua = navigator.userAgent;
+          var isEdge = ua.includes('Edg/');
+          var isChrome = !isEdge && ua.includes('Chrome/') && (navigator.userAgentData !== undefined || !ua.includes('Chromium/'));
+          if(isEdge || isChrome) return;
+
+          var wrap = document.currentScript.previousElementSibling;
+          wrap.innerHTML = '<svg width="135" height="131" viewBox="-40 -40 135 131" xmlns="http://www.w3.org/2000/svg" style="background:transparent; overflow:visible;">'
+            + '<style>'
+            + '  .brand-logo path{ fill-opacity:0; stroke-opacity:0; stroke-width:0.4; stroke-linejoin:round; stroke-linecap:round; stroke-dasharray:1; stroke-dashoffset:1; opacity:0;'
+            + '    animation-duration: 1.3s, var(--pdur, 3.2s); animation-timing-function: ease-in-out, ease-in-out;'
+            + '    animation-iteration-count: 1, infinite; animation-fill-mode: both, forwards; animation-name: logo-draw-once, logo-glow-pulse; }'
+            + '  @@keyframes logo-draw-once{'
+            + '    0%{   opacity:0; stroke-opacity:0; stroke-dashoffset:1; fill-opacity:0; }'
+            + '    8%{   opacity:1; stroke-opacity:1; }'
+            + '    55%{  stroke-dashoffset:0; stroke-opacity:1; fill-opacity:0; }'
+            + '    75%{  stroke-opacity:1; fill-opacity:1; }'
+            + '    100%{ opacity:1; stroke-opacity:0; fill-opacity:1; } }'
+            + '  @@keyframes logo-glow-pulse{'
+            + '    0%{    filter: brightness(1)    drop-shadow(0 0 0px rgba(0,150,138,0)); }'
+            + '    30%{   filter: brightness(1.35) drop-shadow(0 0 2px rgba(0,150,138,0.65)); }'
+            + '    60%{   filter: brightness(1)    drop-shadow(0 0 0px rgba(0,150,138,0)); }'
+            + '    100%{  filter: brightness(1)    drop-shadow(0 0 0px rgba(0,150,138,0)); } }'
+            + '  .brand-logo path:nth-of-type(1){ stroke:#007167; --d:0.0s;  --pdur:6.5s; animation-delay: var(--d), calc(var(--d) + 1.3s); }'
+            + '  .brand-logo path:nth-of-type(2){ stroke:#00958A; --d:0.15s; --pdur:6.5s; animation-delay: var(--d), calc(var(--d) + 1.3s + 0.55s); }'
+            + '  .brand-logo path:nth-of-type(3){ stroke:#007167; --d:0.3s;  --pdur:6.5s; animation-delay: var(--d), calc(var(--d) + 1.3s + 1.10s); }'
+            + '  .brand-logo path:nth-of-type(4){ stroke:#6ABF4B; --d:0.45s; --pdur:6.5s; animation-delay: var(--d), calc(var(--d) + 1.3s + 1.65s); }'
+            + '  .brand-logo path:nth-of-type(5){ stroke:#007167; --d:0.6s;  --pdur:6.5s; animation-delay: var(--d), calc(var(--d) + 1.3s + 2.20s); }'
+            + '  .brand-logo path:nth-of-type(6){ stroke:#00958A; --d:0.75s; --pdur:6.5s; animation-delay: var(--d), calc(var(--d) + 1.3s + 2.75s); }'
+            + '</style>'
+            + '<path pathLength="1" fill="#007167" d="m33.472,50.5121l-0.023,-0.5103c-0.397,-8.0748 -2.141,-15.1291 -5.321,-21.6067l-0.706,-1.442l-0.707,1.442c-3.18,6.4554 -4.924,13.5319 -5.321,21.6067l-0.023,0.5103c1.966,0.3105 3.975,0.488 6.051,0.488c2.075,0 4.106,-0.1775 6.05,-0.488z"/>'
+            + '<path pathLength="1" fill="#00958A" d="m6.908,21.0522c2.959,3.8599 7.287,9.8938 10.489,17.6359l0.949,2.3071l0.552,-2.4402c1.237,-5.4794 3.18,-10.4485 5.918,-15.1292l0.243,-0.4215l-0.287,-0.4215c-1.657,-2.4624 -3.511,-4.7916 -5.83,-7.3427c-1.656,-1.7525 -3.466,-3.505 -5.343,-5.1688l-0.552,-0.488l-0.53,0.5324c-2.738,2.7285 -4.924,5.5902 -6.713,8.7403l-0.265,0.4658l0.354,0.4215c0.331,0.4437 0.662,0.8874 1.015,1.3089z"/>'
+            + '<path pathLength="1" fill="#007167" d="m16.649,49.4472l-0.066,-0.2662c-2.716,-11.3358 -8.214,-19.5215 -12.1,-24.6903l-0.861,-1.1535l-0.508,1.3532c-1.546,4.0817 -2.584,8.7181 -3.114,13.8203c3.997,5.0357 9.804,8.9178 16.649,10.9365z"/>'
+            + '<path pathLength="1" fill="#6ABF4B" d="m21.857,12.5115c1.877,2.0631 3.511,4.0153 4.924,5.9674l0.64,0.8652l0.641,-0.8652c1.435,-1.9521 3.025,-3.8821 4.924,-5.9452c1.589,-1.6638 3.312,-3.34971 5.1,-4.94692l0.707,-0.64333l-0.751,-0.57677c-4.328,-3.34972 -8.302,-5.32405 -10.267,-6.21139l-0.332,-0.15529l-0.331,0.15529c-1.987,0.88734 -5.939,2.88386 -10.267,6.21139l-0.751,0.57677l0.707,0.64333c1.766,1.59721 3.466,3.26102 5.056,4.92472z"/>'
+            + '<path pathLength="1" fill="#007167" d="m54.89,38.5107c-0.552,-5.1022 -1.59,-9.7608 -3.136,-13.8203l-0.507,-1.3532l-0.862,1.1535c-3.886,5.1688 -9.362,13.3323 -12.1,24.6903l-0.066,0.2662c6.823,-2.0187 12.652,-5.9008 16.671,-10.9365z"/>'
+            + '<path pathLength="1" fill="#00958A" d="m35.902,15.2845c-2.297,2.5067 -4.195,4.9026 -5.829,7.3206l-0.287,0.4215l0.242,0.4214c2.738,4.703 4.659,9.6499 5.918,15.1292l0.552,2.4402l0.949,-2.3071c3.202,-7.742 7.508,-13.7538 10.467,-17.6137c0.353,-0.4437 0.706,-0.8652 1.059,-1.3088l0.354,-0.4215l-0.265,-0.4659c-1.789,-3.1501 -3.975,-6.0117 -6.713,-8.7403l-0.53,-0.5324l-0.552,0.488c-1.899,1.6638 -3.687,3.3941 -5.365,5.1688z"/>'
+            + '</svg>';
+        })();
+      </script>
+      <div class="brand-wordmark">
+        <svg width="242" height="76" viewBox="-4 -4 121 38" xmlns="http://www.w3.org/2000/svg" style="background:transparent;">
+        <style>
+          .brand-wordmark path{
+            fill-opacity:0;
+            stroke:#007167;
+            stroke-width:0.35;
+            stroke-linejoin:round;
+            stroke-linecap:round;
+            stroke-dasharray:1;
+            stroke-dashoffset:1;
+            stroke-opacity:0;
+            opacity:0;
+            animation-name: wordmark-draw;
+            animation-duration:1.1s;
+            animation-timing-function: ease-in-out;
+            animation-iteration-count: 1;
+            animation-fill-mode: both;
+          }
+          @@keyframes wordmark-draw{
+            0%{   opacity:0; stroke-opacity:0; stroke-dashoffset:1; fill-opacity:0; }
+            5%{   opacity:1; stroke-opacity:1; }
+            55%{  stroke-dashoffset:0; stroke-opacity:1; fill-opacity:0; }
+            75%{  stroke-opacity:1; fill-opacity:1; }
+            100%{ opacity:1; stroke-opacity:0; fill-opacity:1; }
+          }
+          .brand-wordmark #wm_28{ animation-delay:0.000s; }
+          .brand-wordmark #wm_15{ animation-delay:0.065s; }
+          .brand-wordmark #wm_27{ animation-delay:0.130s; }
+          .brand-wordmark #wm_26{ animation-delay:0.195s; }
+          .brand-wordmark #wm_14{ animation-delay:0.260s; }
+          .brand-wordmark #wm_25{ animation-delay:0.325s; }
+          .brand-wordmark #wm_23{ animation-delay:0.390s; }
+          .brand-wordmark #wm_11{ animation-delay:0.455s; }
+          .brand-wordmark #wm_13{ animation-delay:0.520s; }
+          .brand-wordmark #wm_22{ animation-delay:0.585s; }
+          .brand-wordmark #wm_24{ animation-delay:0.650s; }
+          .brand-wordmark #wm_10{ animation-delay:0.715s; }
+          .brand-wordmark #wm_12{ animation-delay:0.780s; }
+          .brand-wordmark #wm_9{ animation-delay:0.845s; }
+          .brand-wordmark #wm_8{ animation-delay:0.910s; }
+          .brand-wordmark #wm_20{ animation-delay:0.975s; }
+          .brand-wordmark #wm_7{ animation-delay:1.040s; }
+          .brand-wordmark #wm_21{ animation-delay:1.105s; }
+          .brand-wordmark #wm_6{ animation-delay:1.170s; }
+          .brand-wordmark #wm_5{ animation-delay:1.235s; }
+          .brand-wordmark #wm_19{ animation-delay:1.300s; }
+          .brand-wordmark #wm_18{ animation-delay:1.365s; }
+          .brand-wordmark #wm_4{ animation-delay:1.430s; }
+          .brand-wordmark #wm_3{ animation-delay:1.495s; }
+          .brand-wordmark #wm_16{ animation-delay:1.560s; }
+          .brand-wordmark #wm_2{ animation-delay:1.625s; }
+          .brand-wordmark #wm_17{ animation-delay:1.690s; }
+          .brand-wordmark #wm_1{ animation-delay:1.755s; }
+        </style>
+         <path pathLength="1" fill="#007167" d="m2.97956,19.7655c0.15456,-0.1553 0.24288,-0.355 0.24288,-0.5768c0,-0.2219 -0.08832,-0.4215 -0.24288,-0.599c-0.15457,-0.1553 -0.35329,-0.244 -0.59618,-0.244c-0.2208,0 -0.41953,0.0887 -0.57409,0.244c-0.15456,0.1775 -0.24288,0.355 -0.24288,0.599c0,0.2218 0.08832,0.4215 0.24288,0.5768c0.15456,0.1774 0.35329,0.244 0.57409,0.244c0.24289,0.0222 0.44161,-0.0666 0.59618,-0.244z" id="wm_1"/>
+         <path pathLength="1" fill="#007167" d="m0.72866,22.25c-0.48577,0.5324 -0.72866,1.3088 -0.72866,2.3293l0,2.3292l6.27085,0l0,-1.4197l-1.52355,0l-0.7949,0l-2.42885,0l0,-0.7764c0,-0.6212 0.13248,-1.087 0.41953,-1.3976c0.28705,-0.3106 0.72866,-0.4659 1.34691,-0.4659l1.43523,0l0,1.9744l1.52355,0l0,-3.3941l-3.26791,0c-1.0157,0 -1.76643,0.2662 -2.25221,0.8208l0.00001,0z" id="wm_2"/>
+         <path pathLength="1" fill="#007167" d="m4.52656,20.0317c0.2208,0 0.41953,-0.0887 0.57409,-0.244c0.17664,-0.1775 0.24289,-0.355 0.24289,-0.5768c0,-0.2218 -0.08833,-0.4215 -0.24289,-0.599c-0.15456,-0.1552 -0.35329,-0.244 -0.57409,-0.244c-0.15457,0 -0.28705,0.0444 -0.41953,0.1109c-0.13248,0.0888 -0.24289,0.1775 -0.30913,0.3106c-0.08832,0.1331 -0.1104,0.2662 -0.1104,0.4215c0,0.1553 0.04416,0.2884 0.1104,0.4215c0.08832,0.1331 0.17665,0.244 0.30913,0.3106c0.13248,0.0443 0.28704,0.0887 0.41953,0.0887z" id="wm_3"/>
+         <path pathLength="1" fill="#007167" d="m9.27462,26.8642c0,0.6211 -0.13248,1.087 -0.41953,1.4197c-0.28705,0.3328 -0.70658,0.5102 -1.25859,0.5102l-0.46369,0l0,1.442l0.57409,0c1.03779,0 1.8106,-0.2884 2.3185,-0.8874c0.5078,-0.5767 0.7728,-1.3975 0.7728,-2.4402l0,-5.4793l-1.52358,0l0,5.435z" id="wm_4"/>
+         <path pathLength="1" fill="#007167" d="m26.6295,20.0317c0.2208,0 0.4195,-0.0887 0.5962,-0.244c0.1545,-0.1553 0.2428,-0.355 0.2428,-0.5768c0,-0.244 -0.0883,-0.4437 -0.2428,-0.599c-0.1546,-0.1552 -0.3533,-0.244 -0.5962,-0.244c-0.2208,0 -0.4196,0.0888 -0.5741,0.244c-0.1546,0.1775 -0.2429,0.3772 -0.2429,0.599c0,0.2218 0.0883,0.4215 0.2429,0.5768c0.1545,0.1553 0.3533,0.244 0.5741,0.244z" id="wm_5"/>
+         <path pathLength="1" fill="#007167" d="m46.4365,25.4889l-2.1639,0l-3.3783,0l-0.9937,0l0,-0.9096c0,-1.0204 -0.2429,-1.7968 -0.7286,-2.3292c-0.4858,-0.5324 -1.2365,-0.7986 -2.2522,-0.7986l-3.29,0l0,4.0374l-1.921,0l-3.3783,0l-0.9495,0l0,-4.0374l-1.5015,0l0,4.0374l-2.1859,0l-3.3783,0l-0.9937,0l0,-4.0374l-3.29,0c-1.0157,0 -1.7664,0.2662 -2.2522,0.7986c-0.4857,0.5324 -0.7286,1.3088 -0.7286,2.3292l0,2.3293l4.7473,0c0,0.4659 -0.0442,0.843 -0.1325,1.1092c-0.0883,0.2662 -0.265,0.4659 -0.5079,0.599c-0.2428,0.1331 -0.5961,0.1996 -1.0377,0.1996l-2.0094,0l0,1.4197l2.2523,0c1.0598,0 1.8105,-0.2883 2.2522,-0.8651c0.4416,-0.5768 0.6845,-1.3976 0.7065,-2.4846l1.0157,0l3.3783,0l4.6369,0l3.3784,0l9.1854,0l3.3783,0l3.6875,0l0,-8.829l-1.5236,0l0,7.4315l-0.022,0zm-28.6605,0l-3.2237,0l0,-0.7765c0,-0.6211 0.1324,-1.0869 0.4195,-1.3975c0.287,-0.3106 0.7286,-0.4659 1.3469,-0.4659l1.4352,0l0,2.6399l0.0221,0zm20.579,0l-3.2237,0l0,-2.6399l1.4352,0c0.6182,0 1.0598,0.1553 1.3469,0.4659c0.287,0.3106 0.4195,0.7764 0.4195,1.3975l0,0.7765l0.0221,0z" id="wm_6"/>
+         <path pathLength="1" fill="#007167" d="m51.5587,18.0574l-1.5235,0l0,8.829l1.5235,0l0,-8.829z" id="wm_7"/>
+         <path pathLength="1" fill="#007167" d="m58.403,18.5897c-0.1545,0.1553 -0.2428,0.355 -0.2428,0.599c0,0.2218 0.0883,0.4215 0.2428,0.5768c0.1546,0.1774 0.3533,0.244 0.5741,0.244c0.2208,0 0.4196,-0.0888 0.5962,-0.244c0.1546,-0.1775 0.2429,-0.355 0.2429,-0.5768c0,-0.2219 -0.0883,-0.4215 -0.2429,-0.599c-0.1546,-0.1553 -0.3533,-0.244 -0.5962,-0.244c-0.2208,0 -0.4195,0.0887 -0.5741,0.244z" id="wm_8"/>
+         <path pathLength="1" fill="#007167" d="m60.7008,18.4568c-0.1325,0.0888 -0.2429,0.1775 -0.3091,0.3106c-0.0884,0.1331 -0.1105,0.2662 -0.1105,0.4215c0,0.1553 0.0442,0.2884 0.1105,0.4215c0.0883,0.1331 0.1766,0.244 0.3091,0.3105c0.1325,0.0666 0.2649,0.1109 0.4195,0.1109c0.2208,0 0.4195,-0.0887 0.5741,-0.244c0.1766,-0.1774 0.2429,-0.3549 0.2429,-0.5767c0,-0.2219 -0.0883,-0.4215 -0.2429,-0.599c-0.1546,-0.1553 -0.3533,-0.244 -0.5741,-0.244c-0.1546,-0.0222 -0.287,0.0222 -0.4195,0.0887z" id="wm_9"/>
+         <path pathLength="1" fill="#007167" d="m70.192,20.0317c0.2208,0 0.4195,-0.0887 0.5961,-0.244c0.1546,-0.1553 0.2429,-0.355 0.2429,-0.5768c0,-0.244 -0.0883,-0.4437 -0.2429,-0.599c-0.1545,-0.1552 -0.3532,-0.244 -0.5961,-0.244c-0.2208,0 -0.4196,0.0888 -0.5741,0.244c-0.1546,0.1775 -0.2429,0.3772 -0.2429,0.599c0,0.2218 0.0883,0.4215 0.2429,0.5768c0.1545,0.1553 0.3533,0.244 0.5741,0.244z" id="wm_10"/>
+         <path pathLength="1" fill="#007167" d="m79.2922,27.8626c-0.1546,0 -0.2871,0.0443 -0.4195,0.1109c-0.1325,0.0887 -0.2429,0.1774 -0.3092,0.3105c-0.0883,0.1331 -0.1104,0.2662 -0.1104,0.4215c0,0.1331 0.0442,0.2662 0.1104,0.3993c0.0883,0.1331 0.1767,0.2219 0.3092,0.3106c0.1324,0.0666 0.2649,0.1109 0.4195,0.1109c0.1545,0 0.287,-0.0443 0.4195,-0.1109c0.1325,-0.0665 0.2429,-0.1775 0.3091,-0.3106c0.0663,-0.1331 0.1104,-0.2662 0.1104,-0.3993c0,-0.244 -0.0883,-0.4436 -0.2428,-0.6211c-0.1767,-0.1553 -0.3754,-0.2218 -0.5962,-0.2218z" id="wm_11"/>
+         <path pathLength="1" fill="#007167" d="m79.5133,21.4294l-1.5015,0l0,4.0374l-2.7601,0l-3.3783,0l-0.9494,0l0,-4.0374l-1.5015,0l0,4.0374l-2.186,0l-3.3783,0l-0.4858,0l-0.5078,0l-1.5235,0l-0.817,0l-2.4068,0l0,-0.7764c0,-0.6211 0.1325,-1.087 0.4195,-1.3976c0.2871,-0.3105 0.7287,-0.4658 1.3469,-0.4658l1.4574,0l0,1.9743l1.5235,0l0,-3.3941l-3.29,0c-1.0157,0 -1.7664,0.2662 -2.2522,0.7986c-0.4858,0.5324 -0.7286,1.3089 -0.7286,2.3293l0,2.3293l7.2644,0l3.3783,0l4.6369,0l3.3783,0l4.2395,0l0,-5.435l0.0221,0z" id="wm_12"/>
+         <path pathLength="1" fill="#007167" d="m77.149,27.8626c-0.2208,0 -0.4195,0.0887 -0.5741,0.244c-0.1545,0.1774 -0.2429,0.3771 -0.2429,0.6211c0,0.1331 0.0442,0.2662 0.1104,0.3993c0.0663,0.1331 0.1767,0.2219 0.3092,0.3106c0.1324,0.0665 0.2649,0.1109 0.4195,0.1109c0.2208,0 0.4195,-0.0887 0.5962,-0.244c0.1545,-0.1553 0.2428,-0.355 0.2428,-0.5768c0,-0.244 -0.0883,-0.4437 -0.2428,-0.6211c-0.1988,-0.1775 -0.3754,-0.244 -0.6183,-0.244z" id="wm_13"/>
+         <path pathLength="1" fill="#007167" d="m107.135,25.4889l-2.385,0l-3.378,0l-0.994,0l0,-0.9095c0,-1.0205 -0.243,-1.7969 -0.7287,-2.3293c-0.4857,-0.5324 -1.2365,-0.7986 -2.2522,-0.7986l-3.29,0l0,4.0374l-1.921,0l-3.3783,0l-1.0157,0l0,-0.9983c0,-2.0187 -0.9715,-3.0391 -2.9367,-3.0391l-2.5834,0l0,1.4197l2.2301,0c0.6183,0 1.0599,0.1331 1.3469,0.4215c0.2871,0.2884 0.4196,0.7099 0.4196,1.2867l0,0.9095l-5.1006,0l0,1.4197l7.6398,0l3.3783,0l9.1859,0l3.378,0l3.908,0l0,-8.829l-1.523,0l0,7.4093zm-8.3027,0l-3.2237,0l0,-2.6398l1.4352,0c0.6183,0 1.082,0.1552 1.3469,0.4658c0.2871,0.3106 0.4196,0.7764 0.4196,1.3976l0,0.7764l0.022,0z" id="wm_14"/>
+         <path pathLength="1" fill="#007167" d="m112.277,18.0574l-1.523,0l0,8.829l1.523,0l0,-8.829z" id="wm_15"/>
+         <path pathLength="1" fill="#007167" d="m4.10703,4.9469c0.13248,0.0665 0.26496,0.1109 0.41953,0.1109c0.2208,0 0.41953,-0.08871 0.57409,-0.244c0.17664,-0.15528 0.24289,-0.35494 0.24289,-0.57677c0,-0.22184 -0.08833,-0.42149 -0.24289,-0.59896c-0.15456,-0.15529 -0.35329,-0.24402 -0.57409,-0.24402c-0.15457,0 -0.28705,0.04436 -0.41953,0.11092c-0.13248,0.08873 -0.24289,0.17747 -0.30913,0.31057c-0.08832,0.1331 -0.1104,0.2662 -0.1104,0.42149c0,0.15528 0.04416,0.28838 0.1104,0.42148c0.06624,0.11092 0.17665,0.22184 0.30913,0.28839z" id="wm_16"/>
+         <path pathLength="1" fill="#007167" d="m2.38338,5.08c0.22081,0 0.41953,-0.0887 0.59618,-0.24399c0.15456,-0.15528 0.24288,-0.35493 0.24288,-0.57677c0,-0.22183 -0.08832,-0.42149 -0.24288,-0.59896c-0.15457,-0.15528 -0.35329,-0.24402 -0.59618,-0.24402c-0.2208,0 -0.41953,0.08874 -0.57409,0.24402c-0.17664,0.15529 -0.24288,0.35494 -0.24288,0.59896c0,0.22184 0.08832,0.42149 0.24288,0.57677c0.15456,0.15529 0.35329,0.24399 0.57409,0.24399z" id="wm_17"/>
+         <path pathLength="1" fill="#007167" d="m17.9498,5.08c0.2208,0 0.4195,-0.0887 0.5962,-0.24399c0.1545,-0.15528 0.2428,-0.35493 0.2428,-0.57677c0,-0.22183 -0.0883,-0.42149 -0.2428,-0.59896c-0.1546,-0.15528 -0.3533,-0.24402 -0.5962,-0.24402c-0.2208,0 -0.4195,0.08874 -0.5741,0.24402c-0.1546,0.15529 -0.2429,0.35494 -0.2429,0.59896c0,0.22184 0.0883,0.42149 0.2429,0.57677c0.1766,0.15529 0.3533,0.24399 0.5741,0.24399z" id="wm_18"/>
+         <path pathLength="1" fill="#007167" d="m19.6734,4.9469c0.1325,0.0665 0.265,0.1109 0.4196,0.1109c0.2208,0 0.4195,-0.08871 0.5741,-0.244c0.1545,-0.15528 0.2428,-0.35494 0.2428,-0.57677c0,-0.22184 -0.0883,-0.42149 -0.2428,-0.59896c-0.1546,-0.15529 -0.3533,-0.24402 -0.5741,-0.24402c-0.1546,0 -0.2871,0.04436 -0.4196,0.11092c-0.1324,0.08873 -0.2428,0.17747 -0.3091,0.31057c-0.0883,0.1331 -0.1104,0.2662 -0.1104,0.42149c0,0.15528 0.0442,0.28838 0.1104,0.42148c0.0663,0.11092 0.1767,0.22184 0.3091,0.28839z" id="wm_19"/>
+         <path pathLength="1" fill="#007167" d="m51.6451,5.08c0.2208,0 0.4195,-0.0887 0.5962,-0.24399c0.1545,-0.15528 0.2429,-0.35493 0.2429,-0.57677c0,-0.24402 -0.0884,-0.44367 -0.2429,-0.59896c-0.1546,-0.15528 -0.3533,-0.24402 -0.5962,-0.24402c-0.2208,0 -0.4195,0.08874 -0.5741,0.24402c-0.1546,0.17747 -0.2429,0.37713 -0.2429,0.59896c0,0.22184 0.0883,0.42149 0.2429,0.57677c0.1546,0.15529 0.3533,0.24399 0.5741,0.24399z" id="wm_20"/>
+         <path pathLength="1" fill="#007167" d="m67.2571,11.957l0,-2.3293c0,-1.0205 -0.2429,-1.7969 -0.7286,-2.3293c-0.4858,-0.5324 -1.2366,-0.7986 -2.2523,-0.7986l-3.2899,0l0,4.0374l-1.9211,0l-5.7188,0l-0.9495,0l0,-4.0374l-1.5014,0l0,4.0374l-2.186,0l-4.946,0l-1.0157,0l0,-0.9983c0,-2.0187 -0.9716,-3.0391 -2.9367,-3.0391l-5.9838,0l0,-3.39408l-1.5236,0l0,7.40928l-1.9872,0l-7.2866,0l-0.9936,0l0,-4.0374l-3.3121,0c-1.0157,0 -1.7664,0.2662 -2.2522,0.7986c-0.4857,0.5324 -0.7286,1.3089 -0.7286,2.3293l0,0.9095l-1.9652,0l-6.51373,0l-0.48577,0l-0.50785,0l-1.52355,0l-0.83906,0l-2.40677,0l0,-0.7542c0,-0.6212 0.13248,-1.087 0.41953,-1.3976c0.28705,-0.3105 0.72866,-0.4658 1.34691,-0.4658l1.45731,0l0,1.9743l1.52355,0l0,-3.3941l-3.26791,0c-1.0157,0 -1.76643,0.2662 -2.25221,0.7986c-0.48576,0.5324 -0.72865,1.3089 -0.72865,2.3293l0,2.3293l7.26447,0l6.51373,0l9.2296,0l7.2866,0l13.447,0l4.946,0l4.6369,0l5.7189,0l8.2139,0l0,0.0222zm-4.7473,-4.0596l1.4352,0c0.6183,0 1.082,0.1553 1.3469,0.4658c0.2871,0.3106 0.4196,0.7764 0.4196,1.3976l0,0.7764l-3.2238,0l0,-2.6398l0.0221,0zm-42.0191,2.6398l-3.2238,0l0,-0.7764c0,-0.6212 0.1325,-1.087 0.4196,-1.3976c0.287,-0.3105 0.7286,-0.4658 1.3469,-0.4658l1.4352,0l0,2.6398l0.0221,0zm20.7335,0l-7.3969,0l0,-2.6176l5.6305,0c0.6182,0 1.0599,0.1331 1.3469,0.4214c0.287,0.2884 0.4195,0.7099 0.4195,1.2867l0,0.9095z" id="wm_21"/>
+         <path pathLength="1" fill="#007167" d="m76.068,4.9469c0.1324,0.0665 0.2649,0.1109 0.4195,0.1109c0.2208,0 0.4195,-0.08871 0.5741,-0.244c0.1545,-0.15528 0.2429,-0.35494 0.2429,-0.57677c0,-0.22184 -0.0884,-0.42149 -0.2429,-0.59896c-0.1546,-0.15529 -0.3533,-0.24402 -0.5741,-0.24402c-0.1546,0 -0.2871,0.04436 -0.4195,0.11092c-0.1325,0.08873 -0.2429,0.17747 -0.3092,0.31057c-0.0883,0.1331 -0.1104,0.2662 -0.1104,0.42149c0,0.15528 0.0442,0.28838 0.1104,0.42148c0.0663,0.11092 0.1767,0.22184 0.3092,0.28839z" id="wm_22"/>
+         <path pathLength="1" fill="#007167" d="m79.2266,11.9569l8.0815,0l3.6874,0l0,-5.4572l-1.5015,0l0,4.0374l-2.1859,0l-8.0815,0l-0.287,0l-0.7287,0l-1.5235,0l-0.6183,0l-2.6055,0l0,-0.7764c0,-0.6211 0.1325,-1.087 0.4195,-1.3976c0.2871,-0.3105 0.7287,-0.4658 1.3469,-0.4658l1.4353,0l0,1.9743l1.5235,0l0,-3.3941l-3.29,0c-1.0157,0 -1.7664,0.2662 -2.2522,0.7986c-0.4857,0.5325 -0.7286,1.3089 -0.7286,2.3293l0,2.3293l7.3086,0l0,0.0222z" id="wm_23"/>
+         <path pathLength="1" fill="#007167" d="m74.3443,5.08c0.2208,0 0.4196,-0.0887 0.5962,-0.24399c0.1546,-0.15528 0.2429,-0.35493 0.2429,-0.57677c0,-0.22183 -0.0883,-0.42149 -0.2429,-0.59896c-0.1546,-0.15528 -0.3533,-0.24402 -0.5962,-0.24402c-0.2208,0 -0.4195,0.08874 -0.5741,0.24402c-0.1766,0.15529 -0.2429,0.35494 -0.2429,0.59896c0,0.22184 0.0884,0.42149 0.2429,0.57677c0.1767,0.15529 0.3533,0.24399 0.5741,0.24399z" id="wm_24"/>
+         <path pathLength="1" fill="#007167" d="m90.2428,5.08c0.2208,0 0.4195,-0.0887 0.5961,-0.24399c0.1546,-0.15528 0.2429,-0.35493 0.2429,-0.57677c0,-0.24402 -0.0883,-0.44367 -0.2429,-0.59896c-0.1545,-0.15528 -0.3533,-0.24402 -0.5961,-0.24402c-0.2208,0 -0.4196,0.08874 -0.5741,0.24402c-0.1546,0.17747 -0.2429,0.37713 -0.2429,0.59896c0,0.22184 0.0883,0.42149 0.2429,0.57677c0.1545,0.15529 0.3533,0.24399 0.5741,0.24399z" id="wm_25"/>
+         <path pathLength="1" fill="#007167" d="m105.985,6.4776l-3.29,0l0,4.0374l-3.4889,0l-3.3783,0l-0.1325,0c-0.3753,0 -0.6403,-0.0887 -0.8169,-0.2662c-0.1767,-0.1774 -0.265,-0.4658 -0.265,-0.843l0,-6.30008l-1.5236,0l0,6.14488c0,0.6433 0.0884,1.1535 0.2429,1.5528c0.1767,0.3993 0.4416,0.6877 0.8391,0.8652c0.3974,0.1774 0.9274,0.2884 1.5898,0.2884l0.0662,0l3.3783,0l9.7599,0l0,-2.3293c0,-1.0205 -0.243,-1.7969 -0.729,-2.3293c-0.486,-0.5546 -1.236,-0.8208 -2.252,-0.8208zm1.457,4.0596l-3.224,0l0,-2.6176l1.436,0c0.618,0 1.059,0.1552 1.347,0.4658c0.287,0.3106 0.419,0.7764 0.419,1.3976l0,0.7542l0.022,0z" id="wm_26"/>
+         <path pathLength="1" fill="#007167" d="m112.277,3.10572l-1.523,0l0,8.82908l1.523,0l0,-8.82908z" id="wm_27"/>
+         <path pathLength="1" fill="#007167" d="m111.44,1.77469l0,-0.66551c0,-0.17747 0.044,-0.28839 0.11,-0.37712c0.066,-0.08874 0.177,-0.11092 0.331,-0.11092l0.707,0l0,-0.62114l-0.662,0c-0.398,0 -0.707,0.08874 -0.884,0.24402c-0.176,0.17747 -0.265,0.44367 -0.265,0.84298l0,0.6655l0,0.59896l1.966,0l0,-0.57677l-1.303,0z" id="wm_28"/>
+        </svg>
+      </div>
+      <div class="nafath-logo" id="nafathLogoWrap">
+        <svg viewBox="-127.5 -105.5 835.6 530.34" xmlns="http://www.w3.org/2000/svg" style="background:transparent; overflow:visible;">
+        <style>
+          .nafath-logo path{
+            transform-box: fill-box;
+            transform-origin: center;
+            opacity:0;
+            animation-duration: 1.1s, var(--idle-dur, 4.2s);
+            animation-timing-function: cubic-bezier(.22,1,.36,1), cubic-bezier(.37,0,.63,1);
+            animation-iteration-count: 1, infinite;
+            animation-fill-mode: both, forwards;
+            animation-name: nafath-reveal-once, nafath-idle-breathe;
+          }
+          @@keyframes nafath-reveal-once{
+            0%{   opacity:0; transform: scale(0.25) rotate(-18deg); }
+            60%{  opacity:1; transform: scale(1.08) rotate(3deg); }
+            100%{ opacity:1; transform: scale(1) rotate(0deg); }
+          }
+          @@keyframes nafath-idle-breathe{
+            0%{   transform: scale(1);    opacity:1;    }
+            50%{  transform: scale(1.08); opacity:0.88; }
+            100%{ transform: scale(1);    opacity:1;    }
+          }
+          .nafath-logo path:nth-of-type(1){ --d:0.12s; --idle-dur:4.4s; animation-delay: var(--d), calc(var(--d) + 1.1s); }
+          .nafath-logo path:nth-of-type(2){ --d:0.0s; --idle-dur:4.2s; animation-delay: var(--d), calc(var(--d) + 1.1s); }
+          .nafath-logo path:nth-of-type(3){ --d:0.5s; --idle-dur:4.0s; animation-delay: var(--d), calc(var(--d) + 1.1s); }
+          .nafath-logo path:nth-of-type(4){ --d:0.3s; --idle-dur:4.6s; animation-delay: var(--d), calc(var(--d) + 1.1s); }
+          .nafath-logo path:nth-of-type(5){ --d:0.4s; --idle-dur:4.3s; animation-delay: var(--d), calc(var(--d) + 1.1s); }
+        </style>
+         <path fill="#0A9A8F" d="M426.1,233.8c1.5,0.2,2.4,0.4,3.3,0.4c21.3,0,42.7,0.1,64-0.1c12.7-0.1,20-6.8,20.4-19.4    c0.6-21,0.6-42,0.6-63c0-3.9,1.1-6.1,4.7-7.9c10.9-5.4,21.5-11.2,32.3-16.8c1.3-0.7,2.7-1.3,4.5-2.1c0.1,1.4,0.3,2.4,0.3,3.5    c0,29.1,0.5,58.2-0.2,87.3c-0.5,21.8-9.4,39.7-29.1,51c-10.1,5.8-21.3,7.9-32.7,7.9c-32.1,0.2-64.1,0.2-96.2,0    c-8.2-0.1-16.4-1.8-24.6-2.1c-5.5-0.2-11,1.1-16.6,1.4c-9.3,0.4-18.7,0.7-28,0.8c-26.3,0.1-52.6,0.3-78.9-0.1    c-7.8-0.1-15.9-1.2-23.4-3.4c-22.7-7-34.9-23.3-38.8-46.2c-0.8-4.9-1-9.9-1-14.9c-0.1-42.5,0-85-0.1-127.5c0-3.6,0.9-5.6,4.2-7.2    c11-5.5,21.8-11.3,32.7-16.9c1.3-0.7,2.7-1.3,4.8-2.3c0,2.5,0,4.3,0,6.1c0,47.6,0,95.3,0,142.9c0,3.7,0.2,7.5,0.7,11.2    c1.5,11.1,7.6,17.5,18.7,17.7c22.6,0.4,45.1,0.1,67.7,0.1c0.4,0,0.9-0.3,1.9-0.6c-1-2-1.9-3.9-2.9-5.7c-16-27.8-11.5-65.2,7-87.2    c11-13.2,25.3-20.4,42.3-21.9c17.3-1.5,33.9,0.9,48.1,12.1c15.4,12.1,23.3,28.3,25.8,47.5c2.6,19.1-0.9,36.8-10.8,53.3    C426.7,232,426.6,232.6,426.1,233.8z M398.7,185.7c-0.8-3.2-1.5-9.2-3.9-14.4c-4.9-10.6-13.9-14.9-25.5-14.3    c-10.4,0.6-17.9,5.9-21.5,15.7c-7.4,19.7,1.5,44.7,19.4,55.5c3.2,1.9,5.8,2,8.9-0.1C390.3,218.7,398,205.6,398.7,185.7z"/>
+         <path fill="#0A9A8F" d="M78.7,155.1c6.8-11.7,13.6-23.2,20.5-35c13.5,8.1,25.5,17.4,35.1,29.4c18.1,22.4,24.3,48.2,21.3,76.5    c-0.7,6.9-2.2,13.9-4.6,20.4c-6,16.6-18.8,26.3-35.8,27.1c-30.6,1.4-61.2,0.8-91.9,1.1c-0.1,0-0.3-0.1-0.8-0.4    c0.4-1,0.7-2.2,1.2-3.2c5.7-11,11.6-22,17.2-33.1c1.4-2.7,3-3.7,6.1-3.7c15.4,0.2,30.8-0.4,46.2,0.2c18.1,0.7,21.6-10.1,21.2-23    c-0.7-23.6-12.1-40.9-31.6-53.4C81.7,157.1,80.4,156.2,78.7,155.1z"/>
+         <path fill="#0A9A8F" d="M536.2,44.5c13.4,0,21.9,8.4,21.9,21.7c0,14.4-7.4,22.1-21.5,22.3c-13.4,0.2-22-8.4-22.1-22.1    C514.5,53.1,522.9,44.5,536.2,44.5z"/>
+         <path fill="#0A9A8F" d="M121.1,66.4c0,14.8-7.3,22.3-21.5,22.1c-13.5-0.2-22-9-21.9-22.5c0.2-13.2,8.8-21.5,22.3-21.5    C113.2,44.6,121.1,52.8,121.1,66.4z"/>
+         <path fill="#0A9A8F" d="M393,71.1c-0.1,14.7-6.8,21.6-21.3,21.6c-13.9,0-21.9-8.1-21.9-22.1c0-13.7,8.3-21.6,22.4-21.5    C385.5,49.2,393,57.3,393,71.1z"/>
+        </svg>
+      </div>
+      <script>
+        (function(){
+          var ua = navigator.userAgent;
+          var isEdge = ua.includes('Edg/');
+          var isChrome = !isEdge && ua.includes('Chrome/') && (navigator.userAgentData !== undefined || !ua.includes('Chromium/'));
+          if(isEdge || isChrome) return;
+
+          var wrap = document.currentScript.previousElementSibling;
+          wrap.innerHTML = '<svg viewBox="-127.5 -105.5 835.6 530.34" xmlns="http://www.w3.org/2000/svg" style="background:transparent; overflow:visible;">'
+            + '<style>'
+            + '  .nafath-logo path{ transform-box: view-box; opacity:0;'
+            + '    animation-duration: 1.1s, 6.5s; animation-timing-function: cubic-bezier(.22,1,.36,1), ease-in-out;'
+            + '    animation-iteration-count: 1, infinite; animation-fill-mode: both, forwards; animation-name: nafath-reveal-once-alt, nafath-glow-pulse; }'
+            + '  @@keyframes nafath-reveal-once-alt{'
+            + '    0%{   opacity:0; transform: scale(0.25) rotate(-18deg); }'
+            + '    60%{  opacity:1; transform: scale(1.08) rotate(3deg); }'
+            + '    100%{ opacity:1; transform: scale(1) rotate(0deg); } }'
+            + '  @@keyframes nafath-glow-pulse{'
+            + '    0%{    filter: brightness(1)   drop-shadow(0 0 0px rgba(10,154,143,0)); }'
+            + '    30%{   filter: brightness(1.3) drop-shadow(0 0 10px rgba(10,154,143,0.6)); }'
+            + '    60%{   filter: brightness(1)   drop-shadow(0 0 0px rgba(10,154,143,0)); }'
+            + '    100%{  filter: brightness(1)   drop-shadow(0 0 0px rgba(10,154,143,0)); } }'
+            + '  .nafath-logo path:nth-of-type(1){ transform-origin: 371.5px 165.5px; animation-delay: 0.12s, calc(0.12s + 1.1s + 0.00s); }'
+            + '  .nafath-logo path:nth-of-type(2){ transform-origin: 89.4px 197.3px;  animation-delay: 0.0s,  calc(0.0s  + 1.1s + 0.55s); }'
+            + '  .nafath-logo path:nth-of-type(3){ transform-origin: 536.3px 66.5px;  animation-delay: 0.5s,  calc(0.5s  + 1.1s + 1.10s); }'
+            + '  .nafath-logo path:nth-of-type(4){ transform-origin: 99.4px 66.5px;   animation-delay: 0.3s,  calc(0.3s  + 1.1s + 1.65s); }'
+            + '  .nafath-logo path:nth-of-type(5){ transform-origin: 371.4px 70.9px;  animation-delay: 0.4s,  calc(0.4s  + 1.1s + 2.20s); }'
+            + '</style>'
+            + '<path fill="#0A9A8F" d="M426.1,233.8c1.5,0.2,2.4,0.4,3.3,0.4c21.3,0,42.7,0.1,64-0.1c12.7-0.1,20-6.8,20.4-19.4    c0.6-21,0.6-42,0.6-63c0-3.9,1.1-6.1,4.7-7.9c10.9-5.4,21.5-11.2,32.3-16.8c1.3-0.7,2.7-1.3,4.5-2.1c0.1,1.4,0.3,2.4,0.3,3.5    c0,29.1,0.5,58.2-0.2,87.3c-0.5,21.8-9.4,39.7-29.1,51c-10.1,5.8-21.3,7.9-32.7,7.9c-32.1,0.2-64.1,0.2-96.2,0    c-8.2-0.1-16.4-1.8-24.6-2.1c-5.5-0.2-11,1.1-16.6,1.4c-9.3,0.4-18.7,0.7-28,0.8c-26.3,0.1-52.6,0.3-78.9-0.1    c-7.8-0.1-15.9-1.2-23.4-3.4c-22.7-7-34.9-23.3-38.8-46.2c-0.8-4.9-1-9.9-1-14.9c-0.1-42.5,0-85-0.1-127.5c0-3.6,0.9-5.6,4.2-7.2    c11-5.5,21.8-11.3,32.7-16.9c1.3-0.7,2.7-1.3,4.8-2.3c0,2.5,0,4.3,0,6.1c0,47.6,0,95.3,0,142.9c0,3.7,0.2,7.5,0.7,11.2    c1.5,11.1,7.6,17.5,18.7,17.7c22.6,0.4,45.1,0.1,67.7,0.1c0.4,0,0.9-0.3,1.9-0.6c-1-2-1.9-3.9-2.9-5.7c-16-27.8-11.5-65.2,7-87.2    c11-13.2,25.3-20.4,42.3-21.9c17.3-1.5,33.9,0.9,48.1,12.1c15.4,12.1,23.3,28.3,25.8,47.5c2.6,19.1-0.9,36.8-10.8,53.3    C426.7,232,426.6,232.6,426.1,233.8z M398.7,185.7c-0.8-3.2-1.5-9.2-3.9-14.4c-4.9-10.6-13.9-14.9-25.5-14.3    c-10.4,0.6-17.9,5.9-21.5,15.7c-7.4,19.7,1.5,44.7,19.4,55.5c3.2,1.9,5.8,2,8.9-0.1C390.3,218.7,398,205.6,398.7,185.7z"/>'
+            + '<path fill="#0A9A8F" d="M78.7,155.1c6.8-11.7,13.6-23.2,20.5-35c13.5,8.1,25.5,17.4,35.1,29.4c18.1,22.4,24.3,48.2,21.3,76.5    c-0.7,6.9-2.2,13.9-4.6,20.4c-6,16.6-18.8,26.3-35.8,27.1c-30.6,1.4-61.2,0.8-91.9,1.1c-0.1,0-0.3-0.1-0.8-0.4    c0.4-1,0.7-2.2,1.2-3.2c5.7-11,11.6-22,17.2-33.1c1.4-2.7,3-3.7,6.1-3.7c15.4,0.2,30.8-0.4,46.2,0.2c18.1,0.7,21.6-10.1,21.2-23    c-0.7-23.6-12.1-40.9-31.6-53.4C81.7,157.1,80.4,156.2,78.7,155.1z"/>'
+            + '<path fill="#0A9A8F" d="M536.2,44.5c13.4,0,21.9,8.4,21.9,21.7c0,14.4-7.4,22.1-21.5,22.3c-13.4,0.2-22-8.4-22.1-22.1    C514.5,53.1,522.9,44.5,536.2,44.5z"/>'
+            + '<path fill="#0A9A8F" d="M121.1,66.4c0,14.8-7.3,22.3-21.5,22.1c-13.5-0.2-22-9-21.9-22.5c0.2-13.2,8.8-21.5,22.3-21.5    C113.2,44.6,121.1,52.8,121.1,66.4z"/>'
+            + '<path fill="#0A9A8F" d="M393,71.1c-0.1,14.7-6.8,21.6-21.3,21.6c-13.9,0-21.9-8.1-21.9-22.1c0-13.7,8.3-21.6,22.4-21.5    C385.5,49.2,393,57.3,393,71.1z"/>'
+            + '</svg>';
+        })();
+      </script>
+    </div>
+
+    <div class="auth-shell">
+    <div class="auth-card">
+      <div class="auth-top">
+        <h1 id="topTitle" style="font-weight:400;">خدمة طلب شراء رخص نظام إدارة المشاريع</h1>
+      </div>
+
+      <div class="auth-bottom">
+        <div class="lstepper">
+          <div class="lnode active" id="lnode1"><div class="lcircle"></div><div class="llabel">الصفة</div></div>
+          <div class="lline"></div>
+          <div class="lnode" id="lnode2"><div class="lcircle"></div><div class="llabel">الدخول</div></div>
+        </div>
+
+        <div class="lpanel active" id="lpanel1">
+          <p class="panel-hint">اختر الصفة التي تدخل بها إلى النظام</p>
+          <div class="role-list" id="roleList">
+            <button type="button" class="role-opt" data-role="beneficiary" onclick="selectRole('beneficiary')">
+              <div class="role-ic"><svg viewBox="0 0 24 24" width="19" height="19"><g fill="none" stroke="currentColor" stroke-dasharray="28" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M4 21v-1c0 -3.31 2.69 -6 6 -6h4c3.31 0 6 2.69 6 6v1"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="28;0"/></path><path stroke-dashoffset="28" d="M12 11c-2.21 0 -4 -1.79 -4 -4c0 -2.21 1.79 -4 4 -4c2.21 0 4 1.79 4 4c0 2.21 -1.79 4 -4 4Z"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.4s" dur="0.4s" to="0"/></path></g></svg></div>
+              <div class="role-text"><b>مقاول / استشاري</b><span>تقديم ومتابعة طلبات شراء الرخص</span></div>
+              <div class="role-check"><svg viewBox="0 0 24 24" width="11" height="11"><path fill="none" stroke="currentColor" stroke-dasharray="26" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 11l6 6l10 -10"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.5s" values="26;0"/></path></svg></div>
+            </button>
+            <button type="button" class="role-opt" data-role="o3p" onclick="selectRole('o3p')">
+              <div class="role-ic"><svg viewBox="0 0 24 24" width="19" height="19"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path stroke-dasharray="64" d="M9 7h11c0.55 0 1 0.45 1 1v11c0 0.55 -0.45 1 -1 1h-16c-0.55 0 -1 -0.45 -1 -1v-11c0 -0.55 0.45 -1 1 -1Z"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.6s" values="64;0"/></path><path stroke-dasharray="16" stroke-dashoffset="16" d="M9 7v-3c0 -0.55 0.45 -1 1 -1h4c0.55 0 1 0.45 1 1v3"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.6s" dur="0.3s" to="0"/></path></g></svg></div>
+              <div class="role-text"><b>موظف مكتب P3O</b><span>مراجعة، اعتماد، وتفعيل الطلبات</span></div>
+              <div class="role-check"><svg viewBox="0 0 24 24" width="11" height="11"><path fill="none" stroke="currentColor" stroke-dasharray="26" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 11l6 6l10 -10"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.5s" values="26;0"/></path></svg></div>
+            </button>
+            <button type="button" class="role-opt" data-role="admin" onclick="selectRole('admin')">
+              <div class="role-ic"><svg viewBox="0 0 24 24" width="19" height="19"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path stroke-dasharray="8" d="M12 21h5M12 21h-5M12 21v-4"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="8;0"/></path><path stroke-dasharray="62" stroke-dashoffset="62" d="M12 17h-9v-12h18v12Z"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.4s" dur="0.6s" to="0"/></path></g></svg></div>
+              <div class="role-text"><b>مدير النظام</b><span>إدارة المستخدمين وإعدادات النظام</span></div>
+              <div class="role-check"><svg viewBox="0 0 24 24" width="11" height="11"><path fill="none" stroke="currentColor" stroke-dasharray="26" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 11l6 6l10 -10"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.5s" values="26;0"/></path></svg></div>
+            </button>
+          </div>
+          <button type="button" class="pill-btn pill-primary" id="continueBtn" disabled onclick="goToStep2()">
+            متابعة
+            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="none" stroke="currentColor" stroke-dasharray="12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" d="M8 12l7 -7M8 12l7 7"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="12;0"/></path></svg>
+          </button>
+        </div>
+
+        <div class="lpanel" id="reauthConfirm">
+          <p class="panel-hint">تم تسجيل خروجك من النظام. لتسجيل الدخول مرة أخرى يرجى التأكيد عبر نفاذ.</p>
+          <button type="button" class="pill-btn pill-primary" id="reauthConfirmBtn">
+            التأكيد والدخول عبر نفاذ
+            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="none" stroke="currentColor" stroke-dasharray="12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" d="M8 12l7 -7M8 12l7 7"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="12;0"/></path></svg>
+          </button>
+          <button type="button" class="back-link" onclick="backToStep1()">
+            <svg viewBox="0 0 24 24" width="15" height="15"><path fill="none" stroke="currentColor" stroke-dasharray="12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M16 12l-7 -7M16 12l-7 7"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="12;0"/></path></svg>
+            الرجوع لاختيار الصفة
+          </button>
+        </div>
+
+        <div class="lpanel" id="lpanel2">
+          <p class="panel-hint" id="panel2Hint"></p>
+
+          <div class="method-list" id="methodList"></div>
+
+          <button type="button" class="back-link" onclick="backToStep1()">
+            <svg viewBox="0 0 24 24" width="15" height="15"><path fill="none" stroke="currentColor" stroke-dasharray="12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M16 12l-7 -7M16 12l-7 7"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="12;0"/></path></svg>
+            الرجوع لاختيار الصفة
+          </button>
+        </div>
+
+        <div class="lpanel" id="lpanelCompleteProfile">
+          <p class="reg-lead">إكمال بيانات الحساب</p>
+          <p class="panel-hint" style="margin-top:-8px;">تم التحقق من هويتك عبر نفاذ — أكمل بيانات التواصل لإنشاء حسابك</p>
+
+          <div class="avatar-row">
+            <div>
+              <label class="avatar-upload" for="regPhoto" aria-label="إضافة صورة شخصية">
+                <div class="avatar-photo">
+                  <img id="regPhotoPreview" alt="معاينة الصورة الشخصية" style="display:none;width:100%;height:100%;object-fit:cover;border-radius:50%;">
+                  <svg id="regPhotoIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4"/><path d="M4 20c0 -4.4 3.6 -8 8 -8s8 3.6 8 8"/></svg>
+                </div>
+                <div class="cam-badge">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2 -3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.2"/></svg>
+                </div>
+              </label>
+              <input type="file" id="regPhoto" accept="image/*" style="display:none;" onchange="previewRegPhoto(this)">
+              <div class="avatar-hint">صورة شخصية (اختياري)</div>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <span class="field-label" id="pendingNationalIdLabel">رقم الهوية الوطنية / الإقامة</span>
+              <div class="field-pill field-pill-readonly">
+                <span class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="12" r="2"/><path d="M13 10h5M13 14h3"/></svg></span>
+                <span id="pendingNationalId" aria-labelledby="pendingNationalIdLabel" style="direction:ltr;text-align:right;flex:1;">—</span>
+              </div>
+            </div>
+            <div class="field-group">
+              <span class="field-label" id="pendingFullNameLabel">الاسم الكامل</span>
+              <div class="field-pill field-pill-readonly">
+                <span class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0 -3.9 3.1 -7 7 -7s7 3.1 7 7"/></svg></span>
+                <span id="pendingFullName" aria-labelledby="pendingFullNameLabel" style="flex:1;">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <span class="field-label" id="pendingArabicFirstNameLabel">الاسم الأول</span>
+              <div class="field-pill field-pill-readonly">
+                <span class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0 -3.9 3.1 -7 7 -7s7 3.1 7 7"/></svg></span>
+                <span id="pendingArabicFirstName" aria-labelledby="pendingArabicFirstNameLabel" style="flex:1;">—</span>
+              </div>
+            </div>
+            <div class="field-group">
+              <span class="field-label" id="pendingArabicFatherNameLabel">إسم الأب</span>
+              <div class="field-pill field-pill-readonly">
+                <span class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0 -3.9 3.1 -7 7 -7s7 3.1 7 7"/></svg></span>
+                <span id="pendingArabicFatherName" aria-labelledby="pendingArabicFatherNameLabel" style="flex:1;">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <span class="field-label" id="pendingArabicGrandFatherNameLabel">إسم الجد</span>
+              <div class="field-pill field-pill-readonly">
+                <span class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0 -3.9 3.1 -7 7 -7s7 3.1 7 7"/></svg></span>
+                <span id="pendingArabicGrandFatherName" aria-labelledby="pendingArabicGrandFatherNameLabel" style="flex:1;">—</span>
+              </div>
+            </div>
+            <div class="field-group">
+              <span class="field-label" id="pendingArabicFamilyNameLabel">إسم العائلة</span>
+              <div class="field-pill field-pill-readonly">
+                <span class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0 -3.9 3.1 -7 7 -7s7 3.1 7 7"/></svg></span>
+                <span id="pendingArabicFamilyName" aria-labelledby="pendingArabicFamilyNameLabel" style="flex:1;">—</span>
+              </div>
+            </div>
+            <div class="field-group">
+              <span class="field-label" id="pendingArabicNationalityLabel">الجنسية</span>
+              <div class="field-pill field-pill-readonly">
+                <span class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21c4.97 0 9 -4.03 9 -9s-4.03 -9 -9 -9s-9 4.03 -9 9s4.03 9 9 9Z"/><path d="M3.6 9h16.8M3.6 15h16.8M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg></span>
+                <span id="pendingArabicNationality" aria-labelledby="pendingArabicNationalityLabel" style="flex:1;">—</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <span class="field-label" id="pendingGenderLabel">الجنس</span>
+            <div class="field-pill field-pill-readonly">
+              <span class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="3.2"/><path d="M5 20c0 -3.9 3.1 -7 7 -7s7 3.1 7 7"/></svg></span>
+              <span id="pendingGender" aria-labelledby="pendingGenderLabel" style="flex:1;">—</span>
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="regEmail">البريد الإلكتروني<span class="req">*</span></label>
+            <div class="field-pill">
+              <span class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16a1 1 0 011 1v12a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1Z"/><path d="M3 6.5l9 5.5l9 -5.5"/></svg></span>
+              <input type="email" id="regEmail" placeholder="name@@company.com" style="direction:ltr;text-align:right;" autocomplete="username">
+            </div>
+          </div>
+
+          <div class="field-group">
+            <label class="field-label" for="regMobile">رقم الجوال<span class="req">*</span></label>
+            <div class="field-pill">
+              <span class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/></svg></span>
+              <input type="tel" id="regMobile" placeholder="05XXXXXXXX" style="direction:ltr;text-align:right;" autocomplete="tel">
+            </div>
+          </div>
+
+          <div class="field-row">
+            <div class="field-group">
+              <label class="field-label" for="regPassword">كلمة المرور</label>
+              <div class="field-pill" style="opacity:.6;">
+                <span class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg></span>
+                <input type="password" id="regPassword" placeholder="غير متاح حاليا" autocomplete="new-password" disabled style="cursor:not-allowed;">
+              </div>
+            </div>
+            <div class="field-group">
+              <label class="field-label" for="regPasswordConfirm">تأكيد كلمة المرور</label>
+              <div class="field-pill" style="opacity:.6;">
+                <span class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg></span>
+                <input type="password" id="regPasswordConfirm" placeholder="غير متاح حاليا" autocomplete="new-password" disabled style="cursor:not-allowed;">
+              </div>
+            </div>
+          </div>
+          <div class="field-hint" style="margin-top:-6px;margin-bottom:14px;">تسجيل الدخول بكلمة المرور غير متاح حاليا — الدخول عبر نفاذ فقط</div>
+
+          <div class="form-error" id="registerError" style="display:none;color:var(--danger,#c0392b);font-size:12.5px;margin-bottom:10px;"></div>
+
+          <button type="button" class="pill-btn pill-primary" id="registerBtn" onclick="submitCompleteProfile(this)">
+            متابعة
+            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="none" stroke="currentColor" stroke-dasharray="12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" d="M8 12l7 -7M8 12l7 7"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="12;0"/></path></svg>
+          </button>
+        </div>
+
+        <div class="lpanel" id="lpanelVerify">
+          <button type="button" class="reg-back" onclick="backToRegisterFromVerify()">
+            <svg viewBox="0 0 24 24" width="15" height="15"><path fill="none" stroke="currentColor" stroke-dasharray="12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M16 12l-7 -7M16 12l-7 7"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="12;0"/></path></svg>
+            الرجوع للتسجيل
+          </button>
+
+          <div class="verify-icon-wrap">
+            <div class="verify-icon">
+              <svg viewBox="0 0 20 20" width="1em" height="1em">
+                <path fill="url(#shieldGradFill)" d="M9.723 2.084a.5.5 0 0 1 .554 0a15.05 15.05 0 0 0 6.294 2.421A.5.5 0 0 1 17 5v4.5c0 3.891-2.307 6.73-6.82 8.467a.5.5 0 0 1-.36 0C5.308 16.23 3 13.39 3 9.5V5a.5.5 0 0 1 .43-.495a15.05 15.05 0 0 0 6.293-2.421"/>
+                <path fill="url(#shieldGradBadge)" d="M19 14.5a4.5 4.5 0 1 0-9 0a4.5 4.5 0 0 0 9 0"/>
+                <path fill="#ffffff" fill-rule="evenodd" d="M16.854 12.646a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1-1a.5.5 0 0 1 .708-.708l.646.647l2.646-2.647a.5.5 0 0 1 .708 0" clip-rule="evenodd"/>
+                <defs>
+                  <linearGradient id="shieldGradFill" x1="3" y1="2" x2="17" y2="18" gradientUnits="userSpaceOnUse">
+                    <stop offset="0" style="stop-color:var(--brand-700)"/>
+                    <stop offset="1" style="stop-color:var(--brand-900)"/>
+                  </linearGradient>
+                  <linearGradient id="shieldGradBadge" x1="10.321" y1="11.688" x2="16.532" y2="18.141" gradientUnits="userSpaceOnUse">
+                    <stop style="stop-color:var(--brand-active)"/>
+                    <stop offset="1" style="stop-color:var(--brand-900)"/>
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+          </div>
+
+          <h2 class="verify-title">تأكيد الحساب</h2>
+          <p class="verify-sub">لحماية حسابك، أدخل الرمزين المرسلين إلى بريدك الإلكتروني وجوالك</p>
+
+          <div class="verify-dest-row">
+            <div class="verify-dest">
+              <div class="dic"><svg viewBox="0 0 24 24" width="1em" height="1em"><path fill="currentColor" fill-rule="evenodd" d="M5 20a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h14a3 3 0 0 1 3 3v10a3 3 0 0 1-3 3zM7.625 8.22a1 1 0 1 0-1.25 1.56l3.75 3.001a3 3 0 0 0 3.75 0l3.75-3a1 1 0 1 0-1.25-1.562l-3.75 3a1 1 0 0 1-1.25 0z" clip-rule="evenodd"/></svg></div>
+              <div class="dtext"><div class="dlabel">البريد الإلكتروني</div><div class="dvalue" id="verifyEmailValue">—</div></div>
+              <div class="dstatus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"><path d="M5 11l6 6l10 -10"/></svg></div>
+            </div>
+            <div class="verify-dest">
+              <div class="dic"><svg viewBox="0 0 16 16" width="1em" height="1em"><path fill="currentColor" d="M3 2a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zm6 11a1 1 0 1 0-2 0a1 1 0 0 0 2 0"/></svg></div>
+              <div class="dtext"><div class="dlabel">رقم الجوال</div><div class="dvalue" id="verifyMobileValue">—</div></div>
+              <div class="dstatus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5"><path d="M5 11l6 6l10 -10"/></svg></div>
+            </div>
+          </div>
+
+          <fieldset class="otp-block">
+            <legend class="otp-block-label">
+              <span class="otp-chan-ic"><svg viewBox="0 0 28 28" width="1em" height="1em"><path fill="currentColor" d="M20.498 1a4.5 4.5 0 0 0-4.5 4.5V8l-1.62 1.876c-.216.25-.325.376-.355.476a.5.5 0 0 0 .277.606c.096.042.262.042.593.042h11.21c.331 0 .497 0 .593-.042a.5.5 0 0 0 .277-.606c-.03-.1-.139-.225-.356-.476L24.998 8V5.5a4.5 4.5 0 0 0-4.5-4.5m0 13a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2m-7.426-3.945a1.6 1.6 0 0 1 .271-.496c.076-.097.173-.21.269-.32l1.39-1.611V5.5q0-.253.023-.5H6.25l-.184.005A3.25 3.25 0 0 0 3 8.25v.184l11 5.72l3.52-1.83a3 3 0 0 1-.018-.324h-2.626c-.147 0-.296 0-.418-.007a1.6 1.6 0 0 1-.553-.118a1.5 1.5 0 0 1-.833-1.82M20.502 15a3 3 0 0 1-2.446-1.264l-3.71 1.93a.75.75 0 0 1-.692 0L3 10.123v9.626l.005.184A3.25 3.25 0 0 0 6.25 23h15.5l.185-.005A3.25 3.25 0 0 0 25 19.75V12h-1.498a3 3 0 0 1-3 3"/></svg></span>
+              <span>رمز البريد الإلكتروني</span>
+            </legend>
+            <div class="otp-inputs" id="otpEmailGroup">
+              <input type="text" inputmode="numeric" maxlength="1" aria-label="الرقم السادس من رمز البريد">
+              <input type="text" inputmode="numeric" maxlength="1" aria-label="الرقم الخامس من رمز البريد">
+              <input type="text" inputmode="numeric" maxlength="1" aria-label="الرقم الرابع من رمز البريد">
+              <input type="text" inputmode="numeric" maxlength="1" aria-label="الرقم الثالث من رمز البريد">
+              <input type="text" inputmode="numeric" maxlength="1" aria-label="الرقم الثاني من رمز البريد">
+              <input type="text" inputmode="numeric" maxlength="1" aria-label="الرقم الأول من رمز البريد">
+            </div>
+          </fieldset>
+
+          <fieldset class="otp-block">
+            <legend class="otp-block-label">
+              <span class="otp-chan-ic"><svg viewBox="0 0 24 24" width="1em" height="1em"><path fill="currentColor" d="M15.75 2A2.25 2.25 0 0 1 18 4.25v6.769a6.5 6.5 0 0 0-6.385 9.245L11.087 22H8.25A2.25 2.25 0 0 1 6 19.75V4.25A2.25 2.25 0 0 1 8.25 2zM21 13.256A5.48 5.48 0 0 0 17.501 12a5.5 5.5 0 0 0-4.812 8.169l-.666 2.186a.5.5 0 0 0 .624.625l2.187-.666A5.501 5.501 0 0 0 21 13.256M15.5 17a.5.5 0 1 1 0-1h4.002a.5.5 0 1 1 0 1zm2.001 2h-2a.5.5 0 1 1 0-1h2a.5.5 0 1 1 0 1"/></svg></span>
+              <span>رمز الجوال</span>
+            </legend>
+            <div class="otp-inputs" id="otpMobileGroup">
+              <input type="text" inputmode="numeric" maxlength="1" aria-label="الرقم السادس من رمز الجوال">
+              <input type="text" inputmode="numeric" maxlength="1" aria-label="الرقم الخامس من رمز الجوال">
+              <input type="text" inputmode="numeric" maxlength="1" aria-label="الرقم الرابع من رمز الجوال">
+              <input type="text" inputmode="numeric" maxlength="1" aria-label="الرقم الثالث من رمز الجوال">
+              <input type="text" inputmode="numeric" maxlength="1" aria-label="الرقم الثاني من رمز الجوال">
+              <input type="text" inputmode="numeric" maxlength="1" aria-label="الرقم الأول من رمز الجوال">
+            </div>
+          </fieldset>
+
+          <div class="otp-meta-row">
+            <span class="otp-status-msg" id="verifyStatusMsg">لم يصلك الرمز؟</span>
+            <button type="button" class="otp-resend" id="verifyResendBtn" disabled onclick="resendVerifyCodes()">إعادة الإرسال خلال <span class="timer" id="verifyResendTimer">00:45</span></button>
+          </div>
+
+          <div class="form-error" id="verifyError" style="display:none;color:var(--danger,#c0392b);font-size:12.5px;margin-bottom:10px;text-align:center;"></div>
+
+          <button type="button" class="pill-btn pill-primary" id="verifyBtn" onclick="confirmVerification(this)">
+            تأكيد
+            <svg viewBox="0 0 24 24" width="16" height="16"><path fill="none" stroke="currentColor" stroke-dasharray="12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" d="M8 12l7 -7M8 12l7 7"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="12;0"/></path></svg>
+          </button>
+
+          <div class="signin-row">تغيير البريد أو الجوال؟ <button type="button" onclick="backToRegisterFromVerify()">الرجوع للتسجيل</button></div>
+        </div>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <div class="toast-wrap" id="toastWrap"></div>
+
+<script src="/assets/toast.js" asp-append-version="true"></script>
+<script>
+  const LSTEP_RING = 'M3 12c0 -4.97 4.03 -9 9 -9c4.97 0 9 4.03 9 9c0 4.97 -4.03 9 -9 9c-4.97 0 -9 -4.03 -9 -9Z';
+  const LSTEP_CURRENT = `<svg viewBox="0 0 24 24" width="100%" height="100%"><path fill="currentColor" fill-opacity="0" stroke="currentColor" stroke-dasharray="60" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${LSTEP_RING}"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.6s" values="60;0"/><animate fill="freeze" attributeName="fill-opacity" begin="0.6s" dur="0.15s" to=".3"/></path></svg>`;
+  const LSTEP_UPCOMING = `<svg viewBox="0 0 24 24" width="100%" height="100%"><path fill="none" stroke="currentColor" stroke-dasharray="60" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${LSTEP_RING}"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.6s" values="60;0"/></path></svg>`;
+  const LSTEP_UPCOMING_TO_CURRENT = `<svg viewBox="0 0 24 24" width="100%" height="100%"><g><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${LSTEP_RING}"/><animate fill="freeze" attributeName="opacity" begin="0.35s" dur="0.25s" values="1;0"/></g><g opacity="0"><path fill="currentColor" fill-opacity=".3" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${LSTEP_RING}"/><animate fill="freeze" attributeName="opacity" begin="0.35s" dur="0.25s" values="0;1"/></g></svg>`;
+  const LSTEP_CURRENT_TO_UPCOMING = `<svg viewBox="0 0 24 24" width="100%" height="100%"><g><path fill="currentColor" fill-opacity=".3" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${LSTEP_RING}"/><animate fill="freeze" attributeName="opacity" begin="0.35s" dur="0.25s" values="1;0"/></g><g opacity="0"><path fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${LSTEP_RING}"/><animate fill="freeze" attributeName="opacity" begin="0.35s" dur="0.25s" values="0;1"/></g></svg>`;
+  function lstepDone(suffix, animate){
+    const maskId = 'lstepDoneMask' + suffix;
+    const checkPath = animate
+      ? '<path fill="none" stroke="#000" stroke-dasharray="14" d="M8 12l3 3l5 -5"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.2s" values="14;0"/></path>'
+      : '<path fill="none" stroke="#000" d="M8 12l3 3l5 -5"/>';
+    return `<svg viewBox="0 0 24 24" width="100%" height="100%"><defs><mask id="${maskId}"><g stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="#fff" stroke="#fff" d="${LSTEP_RING}"/>${checkPath}</g></mask></defs><path fill="currentColor" d="M0 0h24v24H0z" mask="url(#${maskId})"/></svg>`;
+  }
+
+  function lstepDoneToCurrent(suffix){
+    const maskId = 'lstepDoneToCurrentMask' + suffix;
+    return `<svg viewBox="0 0 24 24" width="100%" height="100%"><defs><mask id="${maskId}"><g stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path fill="#fff" stroke="#fff" d="${LSTEP_RING}"/><path fill="none" stroke="#000" stroke-dasharray="14" d="M8 12l3 3l5 -5"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.2s" values="0;14"/></path></g></mask></defs><g><path fill="currentColor" d="M0 0h24v24H0z" mask="url(#${maskId})"/><animate fill="freeze" attributeName="opacity" begin="0.35s" dur="0.25s" values="1;0"/></g><g opacity="0"><path fill="currentColor" fill-opacity=".3" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${LSTEP_RING}"/><animate fill="freeze" attributeName="opacity" begin="0.35s" dur="0.25s" values="0;1"/></g></svg>`;
+  }
+
+  const lstepAnimated = new Set();
+
+  function markLoginStepDone(){
+    const node2 = document.getElementById('lnode2');
+    if(!node2) return;
+    node2.classList.remove('active');
+    node2.classList.add('done');
+    renderLoginStepper();
+  }
+
+  function renderLoginStepper(){
+    document.querySelectorAll('.lstepper .lnode').forEach((node,i)=>{
+      const newState = node.classList.contains('done') ? 'done'
+        : (node.classList.contains('active') ? 'current' : 'upcoming');
+      const oldState = node.dataset.state || null;
+      if(newState === oldState) return; 
+
+      const circle = node.querySelector('.lcircle');
+      if(newState === 'done'){
+        circle.innerHTML = lstepDone(i, !lstepAnimated.has(i));
+        lstepAnimated.add(i);
+      } else if(newState === 'current'){
+        if(oldState === 'done') circle.innerHTML = lstepDoneToCurrent(i);
+        else if(oldState === 'upcoming') circle.innerHTML = LSTEP_UPCOMING_TO_CURRENT;
+        else circle.innerHTML = LSTEP_CURRENT;
+      } else {
+        circle.innerHTML = oldState === 'current' ? LSTEP_CURRENT_TO_UPCOMING : LSTEP_UPCOMING;
+      }
+      node.dataset.state = newState;
+    });
+  }
+  renderLoginStepper();
+
+  let selectedRole = null;
+
+  const METHODS = {
+    beneficiary: [
+      {key:'nafath', label:'الدخول عبر نفاذ', desc:'باستخدام حسابك الموحد في النفاذ الوطني', icon:'nafath'},
+      {key:'email', label:'البريد الإلكتروني للعمل', desc:'بريد شركتك وكلمة المرور', icon:'email'}
+    ],
+    o3p: [
+      {key:'nafath', label:'الدخول عبر نفاذ', desc:'باستخدام حسابك الموحد في النفاذ الوطني', icon:'nafath'},
+      {key:'ad', label:'حساب الدخول الموحد (AD)', desc:'اسم المستخدم وكلمة المرور الخاصة بالأمانة', icon:'ad'},
+      {key:'email', label:'البريد الإلكتروني الرسمي', desc:'بريد madinah.gov.sa وكلمة المرور', icon:'email'}
+    ],
+    admin: [
+      {key:'nafath', label:'الدخول عبر نفاذ', desc:'باستخدام حسابك الموحد في النفاذ الوطني', icon:'nafath'},
+      {key:'ad', label:'حساب الدخول الموحد (AD)', desc:'اسم المستخدم وكلمة المرور الخاصة بالأمانة', icon:'ad'},
+      {key:'email', label:'البريد الإلكتروني الرسمي', desc:'بريد madinah.gov.sa وكلمة المرور', icon:'email'}
+    ]
+  };
+  const ICON = {
+    nafath:'<svg class="ic-nafath" viewBox="-127.5 -105.5 835.6 530.34" width="34" height="23.5"><path pathLength="1" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" fill-opacity="0" stroke-dasharray="1" stroke-dashoffset="1" d="M426.1,233.8c1.5,0.2,2.4,0.4,3.3,0.4c21.3,0,42.7,0.1,64-0.1c12.7-0.1,20-6.8,20.4-19.4    c0.6-21,0.6-42,0.6-63c0-3.9,1.1-6.1,4.7-7.9c10.9-5.4,21.5-11.2,32.3-16.8c1.3-0.7,2.7-1.3,4.5-2.1c0.1,1.4,0.3,2.4,0.3,3.5    c0,29.1,0.5,58.2-0.2,87.3c-0.5,21.8-9.4,39.7-29.1,51c-10.1,5.8-21.3,7.9-32.7,7.9c-32.1,0.2-64.1,0.2-96.2,0    c-8.2-0.1-16.4-1.8-24.6-2.1c-5.5-0.2-11,1.1-16.6,1.4c-9.3,0.4-18.7,0.7-28,0.8c-26.3,0.1-52.6,0.3-78.9-0.1    c-7.8-0.1-15.9-1.2-23.4-3.4c-22.7-7-34.9-23.3-38.8-46.2c-0.8-4.9-1-9.9-1-14.9c-0.1-42.5,0-85-0.1-127.5c0-3.6,0.9-5.6,4.2-7.2    c11-5.5,21.8-11.3,32.7-16.9c1.3-0.7,2.7-1.3,4.8-2.3c0,2.5,0,4.3,0,6.1c0,47.6,0,95.3,0,142.9c0,3.7,0.2,7.5,0.7,11.2    c1.5,11.1,7.6,17.5,18.7,17.7c22.6,0.4,45.1,0.1,67.7,0.1c0.4,0,0.9-0.3,1.9-0.6c-1-2-1.9-3.9-2.9-5.7c-16-27.8-11.5-65.2,7-87.2    c11-13.2,25.3-20.4,42.3-21.9c17.3-1.5,33.9,0.9,48.1,12.1c15.4,12.1,23.3,28.3,25.8,47.5c2.6,19.1-0.9,36.8-10.8,53.3    C426.7,232,426.6,232.6,426.1,233.8z M398.7,185.7c-0.8-3.2-1.5-9.2-3.9-14.4c-4.9-10.6-13.9-14.9-25.5-14.3    c-10.4,0.6-17.9,5.9-21.5,15.7c-7.4,19.7,1.5,44.7,19.4,55.5c3.2,1.9,5.8,2,8.9-0.1C390.3,218.7,398,205.6,398.7,185.7z"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.07s" dur="0.35s" values="1;0"/><animate fill="freeze" attributeName="stroke-opacity" begin="0.07s" dur="0.056s" values="0;1"/><animate fill="freeze" attributeName="fill-opacity" begin="0.574s" dur="0.196s" values="0;1"/><animate fill="freeze" attributeName="stroke-opacity" begin="0.574s" dur="0.196s" values="1;0"/></path><path pathLength="1" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" fill-opacity="0" stroke-dasharray="1" stroke-dashoffset="1" d="M78.7,155.1c6.8-11.7,13.6-23.2,20.5-35c13.5,8.1,25.5,17.4,35.1,29.4c18.1,22.4,24.3,48.2,21.3,76.5    c-0.7,6.9-2.2,13.9-4.6,20.4c-6,16.6-18.8,26.3-35.8,27.1c-30.6,1.4-61.2,0.8-91.9,1.1c-0.1,0-0.3-0.1-0.8-0.4    c0.4-1,0.7-2.2,1.2-3.2c5.7-11,11.6-22,17.2-33.1c1.4-2.7,3-3.7,6.1-3.7c15.4,0.2,30.8-0.4,46.2,0.2c18.1,0.7,21.6-10.1,21.2-23    c-0.7-23.6-12.1-40.9-31.6-53.4C81.7,157.1,80.4,156.2,78.7,155.1z"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0s" dur="0.35s" values="1;0"/><animate fill="freeze" attributeName="stroke-opacity" begin="0s" dur="0.056s" values="0;1"/><animate fill="freeze" attributeName="fill-opacity" begin="0.504s" dur="0.196s" values="0;1"/><animate fill="freeze" attributeName="stroke-opacity" begin="0.504s" dur="0.196s" values="1;0"/></path><path pathLength="1" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" fill-opacity="0" stroke-dasharray="1" stroke-dashoffset="1" d="M536.2,44.5c13.4,0,21.9,8.4,21.9,21.7c0,14.4-7.4,22.1-21.5,22.3c-13.4,0.2-22-8.4-22.1-22.1    C514.5,53.1,522.9,44.5,536.2,44.5z"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.28s" dur="0.35s" values="1;0"/><animate fill="freeze" attributeName="stroke-opacity" begin="0.28s" dur="0.056s" values="0;1"/><animate fill="freeze" attributeName="fill-opacity" begin="0.784s" dur="0.196s" values="0;1"/><animate fill="freeze" attributeName="stroke-opacity" begin="0.784s" dur="0.196s" values="1;0"/></path><path pathLength="1" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" fill-opacity="0" stroke-dasharray="1" stroke-dashoffset="1" d="M121.1,66.4c0,14.8-7.3,22.3-21.5,22.1c-13.5-0.2-22-9-21.9-22.5c0.2-13.2,8.8-21.5,22.3-21.5    C113.2,44.6,121.1,52.8,121.1,66.4z"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.19s" dur="0.35s" values="1;0"/><animate fill="freeze" attributeName="stroke-opacity" begin="0.19s" dur="0.056s" values="0;1"/><animate fill="freeze" attributeName="fill-opacity" begin="0.694s" dur="0.196s" values="0;1"/><animate fill="freeze" attributeName="stroke-opacity" begin="0.694s" dur="0.196s" values="1;0"/></path><path pathLength="1" fill="currentColor" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" fill-opacity="0" stroke-dasharray="1" stroke-dashoffset="1" d="M393,71.1c-0.1,14.7-6.8,21.6-21.3,21.6c-13.9,0-21.9-8.1-21.9-22.1c0-13.7,8.3-21.6,22.4-21.5    C385.5,49.2,393,57.3,393,71.1z"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.24s" dur="0.35s" values="1;0"/><animate fill="freeze" attributeName="stroke-opacity" begin="0.24s" dur="0.056s" values="0;1"/><animate fill="freeze" attributeName="fill-opacity" begin="0.744s" dur="0.196s" values="0;1"/><animate fill="freeze" attributeName="stroke-opacity" begin="0.744s" dur="0.196s" values="1;0"/></path></svg>',
+    ad:'<svg viewBox="0 0 24 24" width="18" height="18"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path stroke-dasharray="8" d="M12 21h5M12 21h-5M12 21v-4"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="8;0"/></path><path stroke-dasharray="62" stroke-dashoffset="62" d="M12 17h-9v-12h18v12Z"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.4s" dur="0.6s" to="0"/></path></g></svg>',
+    email:'<svg viewBox="0 0 24 24" width="18" height="18"><path fill="none" stroke="currentColor" stroke-dasharray="86" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 12c0 2.21 -1.79 4 -4 4c-2.21 0 -4 -1.79 -4 -4c0 -2.21 1.79 -4 4 -4c2.21 0 4 1.79 4 4v1.5c0 1.38 1.12 2.5 2.5 2.5c1.38 0 2.5 -1.12 2.5 -2.5v-1.5c0 -4.97 -4.03 -9 -9 -9c-4.97 0 -9 4.03 -9 9c0 4.97 4.03 9 9 9h4"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.6s" values="86;0"/></path></svg>'
+  };
+  const SPIN_RING_SM = '<svg viewBox="0 0 24 24" width="16" height="16" style="flex-shrink:0"><g stroke="currentColor"><circle cx="12" cy="12" r="9.5" fill="none" stroke-linecap="round" stroke-width="3"><animate attributeName="stroke-dasharray" calcMode="spline" dur="1.5s" keySplines="0.42,0,0.58,1;0.42,0,0.58,1;0.42,0,0.58,1" keyTimes="0;0.475;0.95;1" repeatCount="indefinite" values="0 150;42 150;42 150;42 150"/><animate attributeName="stroke-dashoffset" calcMode="spline" dur="1.5s" keySplines="0.42,0,0.58,1;0.42,0,0.58,1;0.42,0,0.58,1" keyTimes="0;0.475;0.95;1" repeatCount="indefinite" values="0;-16;-59;-59"/></circle><animateTransform attributeName="transform" dur="2s" repeatCount="indefinite" type="rotate" values="0 12 12;360 12 12"/></g></svg>';
+
+  function csrfToken(){
+    const meta = document.querySelector('meta[name="csrf-token"]');
+    return meta ? meta.content : '';
+  }
+
+  function replaySvgAnimations(container){
+    if(!container) return;
+    const svg = container.querySelector('svg');
+    if(!svg) return;
+    const clone = svg.cloneNode(true);
+    svg.replaceWith(clone);
+  }
+
+  function selectRole(role){
+    selectedRole = role;
+    document.querySelectorAll('.role-opt').forEach(el=>{
+      const isMatch = el.getAttribute('data-role')===role;
+      el.classList.toggle('selected', isMatch);
+      if(isMatch){
+        replaySvgAnimations(el.querySelector('.role-ic'));
+        replaySvgAnimations(el.querySelector('.role-check'));
+      }
+    });
+    document.getElementById('continueBtn').disabled = false;
+  }
+
+  function goToStep2(){
+    if(!selectedRole) return;
+    document.getElementById('lpanel1').classList.remove('active');
+    document.getElementById('lpanel2').classList.add('active');
+    document.getElementById('lnode1').classList.add('done');
+    document.getElementById('lnode1').classList.remove('active');
+    document.getElementById('lnode2').classList.add('active');
+    renderLoginStepper();
+    document.getElementById('panel2Hint').textContent = selectedRole==='beneficiary'
+      ? 'اختر طريقة الدخول المناسبة لحسابك'
+      : 'اختر طريقة الدخول المعتمدة لموظفي الأمانة';
+
+    const list = document.getElementById('methodList');
+    list.classList.remove('has-active');
+    list.innerHTML = METHODS[selectedRole].map((m,i)=>`
+      <div class="method-row" data-method-row="${m.key}">
+        <button type="button" class="method-opt" data-method="${m.key}" onclick="toggleMethod('${m.key}')">
+          <div class="method-ic">${ICON[m.icon]}</div>
+          <div class="method-text"><b>${m.label}</b><span>${m.desc}</span></div>
+          <svg class="chev" viewBox="0 0 24 24" width="16" height="16"><path fill="none" stroke="currentColor" stroke-dasharray="12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 16l-7 -7M12 16l7 -7"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="12;0"/></path></svg>
+        </button>
+        <div class="method-form" id="form-${m.key}">${renderMethodForm(m.key)}</div>
+      </div>
+    `).join('');
+  }
+
+  function renderMethodForm(key){
+    if(key==='nafath'){
+      return `<div class="method-form-inner">
+        <button type="button" class="pill-btn pill-primary" id="nafathBtn" onclick="startNafath()">
+          متابعة عبر نفاذ
+          <svg viewBox="0 0 24 24" width="16" height="16"><path fill="none" stroke="currentColor" stroke-dasharray="12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M8 12l7 -7M8 12l7 7"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="12;0"/></path></svg>
+        </button>
+      </div>`;
+    }
+    if(key==='ad'){
+      return `<div class="method-form-inner">
+        <div class="field-pill">
+          <div class="fic"><svg viewBox="0 0 24 24" width="17" height="17"><g fill="none" stroke="currentColor" stroke-dasharray="28" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M4 21v-1c0 -3.31 2.69 -6 6 -6h4c3.31 0 6 2.69 6 6v1"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="28;0"/></path><path stroke-dashoffset="28" d="M12 11c-2.21 0 -4 -1.79 -4 -4c0 -2.21 1.79 -4 4 -4c2.21 0 4 1.79 4 4c0 2.21 -1.79 4 -4 4Z"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.4s" dur="0.4s" to="0"/></path></g></svg></div>
+          <input type="text" placeholder="اسم المستخدم" autocomplete="username">
+        </div>
+        <div class="field-pill">
+          <div class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg></div>
+          <input type="password" placeholder="كلمة المرور" autocomplete="current-password">
+          <button type="button" class="toggle-eye" onclick="toggleEye(this)">${iconEyeSlashed()}</button>
+        </div>
+        <button type="button" class="pill-btn pill-primary" onclick="finishLogin(this)">تسجيل الدخول</button>
+      </div>`;
+    }
+    return `<div class="method-form-inner">
+      <div class="field-pill">
+        <div class="fic"><svg viewBox="0 0 24 24" width="17" height="17"><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path stroke-dasharray="66" d="M4 5h16c0.55 0 1 0.45 1 1v12c0 0.55 -0.45 1 -1 1h-16c-0.55 0 -1 -0.45 -1 -1v-12c0 -0.55 0.45 -1 1 -1Z"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.6s" values="66;0"/></path><path stroke-dasharray="24" stroke-dashoffset="24" d="M3 6.5l9 5.5l9 -5.5"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.6s" dur="0.3s" to="0"/></path></g></svg></div>
+        <input type="email" id="emailLoginEmail" placeholder="${selectedRole==='beneficiary'?'name@@company.com':'name@@madinah.gov.sa'}" autocomplete="username">
+      </div>
+      <div class="field-pill">
+        <div class="fic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg></div>
+        <input type="password" id="emailLoginPassword" placeholder="كلمة المرور" autocomplete="current-password">
+        <button type="button" class="toggle-eye" onclick="toggleEye(this)">${iconEyeSlashed()}</button>
+      </div>
+      <div class="form-error" id="emailLoginError" style="display:none;color:var(--danger,#c0392b);font-size:12.5px;"></div>
+      <button type="button" class="pill-btn pill-primary" onclick="finishLogin(this,'email')">تسجيل الدخول</button>
+      <div class="forgot-row">
+        <a href="#" onclick="return false;">نسيت كلمة المرور؟</a>${selectedRole==='beneficiary' ? '<span class="forgot-sep">·</span><a href="#" onclick="startRegisterViaNafath();return false;">إنشاء حساب جديد</a>' : ''}
+      </div>
+    </div>`;
+  }
+
+  const DISABLED_METHOD_MESSAGES = {
+    email: 'تسجيل دخول عن طريق الإيميل غير متاح حاليا',
+    ad: 'تسجيل دخول عن طريقة اكسيس دايريكتوري غير متاح حاليا'
+  };
+
+  function toggleMethod(key){
+    if(DISABLED_METHOD_MESSAGES[key]){
+      showToast(DISABLED_METHOD_MESSAGES[key], 'warning');
+      return;
+    }
+
+    const list = document.getElementById('methodList');
+    const alreadyActive = document.querySelector(`.method-opt[data-method="${key}"]`).classList.contains('active');
+    const nextKey = alreadyActive ? null : key;
+
+    list.classList.toggle('has-active', !!nextKey);
+    document.querySelectorAll('.method-row').forEach(el=>{
+      el.classList.toggle('is-active', el.getAttribute('data-method-row')===nextKey);
+    });
+    document.querySelectorAll('.method-opt').forEach(el=>{
+      const isMatch = el.getAttribute('data-method')===nextKey;
+      el.classList.toggle('active', isMatch);
+      if(isMatch) replaySvgAnimations(el.querySelector('.method-ic'));
+    });
+    document.querySelectorAll('.method-form').forEach(el=>el.classList.toggle('open', el.id==='form-'+nextKey));
+    if(nextKey==='nafath') showNafathBrand();
+    else if(!nextKey) showAmanaBrand();
+  }
+
+  function showNafathBrand(){
+    document.querySelector('.brand-panel .brand-logo').style.display = 'none';
+    document.querySelector('.brand-panel .brand-wordmark').style.display = 'none';
+    const nafathWrap = document.getElementById('nafathLogoWrap');
+    nafathWrap.classList.add('active');
+    replaySvgAnimations(nafathWrap);
+  }
+
+  function showAmanaBrand(){
+    document.getElementById('nafathLogoWrap').classList.remove('active');
+    const logoWrap = document.querySelector('.brand-panel .brand-logo');
+    const wordmarkWrap = document.querySelector('.brand-panel .brand-wordmark');
+    logoWrap.style.display = '';
+    wordmarkWrap.style.display = '';
+    replaySvgAnimations(logoWrap);
+    replaySvgAnimations(wordmarkWrap);
+  }
+
+  function iconEyeOpen(){
+    const mid = 'icEyeOpen'+(iconEyeOpen.seq=(iconEyeOpen.seq||0)+1);
+    return `<svg viewBox="0 0 24 24" width="16" height="16"><defs><mask id="${mid}"><path fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 12c1.72 -3.83 5.53 -6.5 10 -6.5c4.47 0 8.28 2.67 10 6.5c-1.72 3.83 -5.53 6.5 -10 6.5c-4.47 0 -8.28 -2.67 -10 -6.5Z"/><circle cx="12" cy="12" r="3" fill="#fff"/><path fill="none" stroke="#000" stroke-dasharray="26" stroke-dashoffset="0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M0 11h24" transform="rotate(45 12 12)"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.05s" dur="0.3s" to="26"/></path></mask></defs><path fill="currentColor" d="M0 0h24v24H0z" mask="url(#${mid})"/><path fill="none" stroke="currentColor" stroke-dasharray="26" stroke-dashoffset="0" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M0 13h24" transform="rotate(45 12 12)"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.05s" dur="0.3s" to="26"/></path></svg>`;
+  }
+  function iconEyeSlashed(){
+    const mid = 'icEyeSlashed'+(iconEyeSlashed.seq=(iconEyeSlashed.seq||0)+1);
+    return `<svg viewBox="0 0 24 24" width="16" height="16"><defs><mask id="${mid}"><path fill="none" stroke="#fff" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 12c1.72 -3.83 5.53 -6.5 10 -6.5c4.47 0 8.28 2.67 10 6.5c-1.72 3.83 -5.53 6.5 -10 6.5c-4.47 0 -8.28 -2.67 -10 -6.5Z"/><circle cx="12" cy="12" r="3" fill="#fff"/><path fill="none" stroke="#000" stroke-dasharray="26" stroke-dashoffset="26" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M0 11h24" transform="rotate(45 12 12)"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.05s" dur="0.3s" to="0"/></path></mask></defs><path fill="currentColor" d="M0 0h24v24H0z" mask="url(#${mid})"/><path fill="none" stroke="currentColor" stroke-dasharray="26" stroke-dashoffset="26" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M0 13h24" transform="rotate(45 12 12)"><animate fill="freeze" attributeName="stroke-dashoffset" begin="0.05s" dur="0.3s" to="0"/></path></svg>`;
+  }
+  function toggleEye(btn){
+    const input = btn.previousElementSibling;
+    const reveal = input.type === 'password';
+    input.type = reveal ? 'text' : 'password';
+    btn.innerHTML = reveal ? iconEyeOpen() : iconEyeSlashed();
+  }
+
+  const NAFATH_ROLE_PARAM = {beneficiary:'ContractorConsultant', o3p:'P3OOfficer', admin:'SystemAdministrator'};
+
+  function startNafath(){
+    const btn = document.getElementById('nafathBtn');
+    if(btn){
+      btn.disabled = true;
+      btn.innerHTML = `${SPIN_RING_SM}جارٍ التحويل إلى نفاذ...`;
+    }
+    markNafathAttemptPending();
+    window.location.href = '/login/nafath?role=' + encodeURIComponent(NAFATH_ROLE_PARAM[selectedRole]);
+  }
+
+  function startRegisterViaNafath(){
+    showToast('لإنشاء حساب جديد يرجى التحقق من خلال نفاذ اولا', 'warning');
+    selectedRole = 'beneficiary';
+    setTimeout(startNafath, 900);
+  }
+
+  function finishLogin(btn, method){
+    if(method==='email'){
+      emailLogin(btn);
+      return;
+    }
+    const go = () => {
+      markLoginStepDone();
+      showToast('تم تسجيل الدخول بنجاح — جاري التحويل...', true);
+      setTimeout(()=>{ window.location.href = '/app'; }, 700);
+    };
+    if(btn){
+      btn.disabled = true;
+      btn.innerHTML = `${SPIN_RING_SM}جارٍ تسجيل الدخول...`;
+      setTimeout(go, 600);
+    } else {
+      go();
+    }
+  }
+
+  async function emailLogin(btn){
+    const emailEl = document.getElementById('emailLoginEmail');
+    const passwordEl = document.getElementById('emailLoginPassword');
+    const errorEl = document.getElementById('emailLoginError');
+    errorEl.style.display = 'none';
+
+    const email = emailEl.value.trim();
+    const password = passwordEl.value;
+    if(!email || !password){
+      errorEl.textContent = 'البريد الإلكتروني وكلمة المرور مطلوبان';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `${SPIN_RING_SM}جارٍ تسجيل الدخول...`;
+
+    try{
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken() },
+        body: JSON.stringify({ email, password, role: NAFATH_ROLE_PARAM[selectedRole] })
+      });
+      const data = await res.json().catch(()=>({}));
+
+      if(!res.ok){
+        errorEl.textContent = selectedRole === 'beneficiary'
+          ? 'الحساب غير موجود يرجى الدخول عن طريق نفاذ اولا'
+          : (data.message || 'تعذر تسجيل الدخول');
+        errorEl.style.display = 'block';
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+        return;
+      }
+
+      markLoginStepDone();
+      showToast('تم تسجيل الدخول بنجاح — جاري التحويل...', true);
+      setTimeout(()=>{ window.location.href = data.redirectUrl || '/app'; }, 500);
+    } catch(err){
+      errorEl.textContent = 'تعذر الاتصال بالخادم';
+      errorEl.style.display = 'block';
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  }
+
+  function backToStep1(){
+    document.getElementById('lpanel2').classList.remove('active');
+    document.getElementById('reauthConfirm').classList.remove('active');
+    document.getElementById('lpanel1').classList.add('active');
+    document.getElementById('lnode2').classList.remove('active');
+    document.getElementById('lnode1').classList.add('active');
+    document.getElementById('lnode1').classList.remove('done');
+    renderLoginStepper();
+    showAmanaBrand();
+
+    selectedRole = null;
+    document.querySelectorAll('.role-opt').forEach(el=>el.classList.remove('selected'));
+    document.getElementById('continueBtn').disabled = true;
+  }
+
+  function backToRegisterFromVerify(){
+    stopVerifyResendTimer();
+    document.getElementById('lpanelVerify').classList.remove('active');
+    document.getElementById('lpanelCompleteProfile').classList.add('active');
+    document.querySelector('.auth-top').style.display = '';
+    document.getElementById('topTitle').textContent = 'إكمال بيانات الحساب';
+  }
+
+  function previewRegPhoto(input){
+    const file = input.files && input.files[0];
+    if(!file) return;
+    const img = document.getElementById('regPhotoPreview');
+    const icon = document.getElementById('regPhotoIcon');
+    const reader = new FileReader();
+    reader.onload = (e)=>{
+      img.src = e.target.result;
+      img.style.display = 'block';
+      icon.style.display = 'none';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function otpResendCooldownSeconds(){
+    const meta = document.querySelector('meta[name="otp-resend-cooldown-seconds"]');
+    const parsed = meta ? parseInt(meta.content, 10) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 45;
+  }
+
+  async function submitCompleteProfile(btn){
+    const email = document.getElementById('regEmail').value.trim();
+    const mobile = document.getElementById('regMobile').value.trim();
+    const errorEl = document.getElementById('registerError');
+    errorEl.style.display = 'none';
+
+    if(!email || !mobile){
+      errorEl.textContent = 'جميع الحقول (باستثناء الصورة الشخصية) مطلوبة';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `${SPIN_RING_SM}جارٍ الإرسال...`;
+
+    try{
+      const res = await fetch('/register/send-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken() },
+        body: JSON.stringify({ email, mobile })
+      });
+      const data = await res.json().catch(()=>({}));
+
+      if(!res.ok){
+        showToast(data.message || 'تعذر إرسال رمز التحقق', 'warning');
+        return;
+      }
+
+      document.getElementById('verifyEmailValue').textContent = email;
+      document.getElementById('verifyMobileValue').textContent = mobile;
+
+      document.getElementById('lpanelCompleteProfile').classList.remove('active');
+      document.getElementById('lpanelVerify').classList.add('active');
+      document.querySelector('.auth-top').style.display = 'none';
+
+      resetVerifyPanel();
+      startVerifyResendTimer(otpResendCooldownSeconds());
+    } catch(err){
+      showToast('توجد مشكلة في عملية التحقق', 'warning');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  }
+
+  let verifyResendIntervalId = null;
+
+  function resetVerifyPanel(){
+    document.getElementById('verifyError').style.display = 'none';
+    document.getElementById('verifyStatusMsg').textContent = 'لم يصلك الرمز؟';
+    document.getElementById('verifyStatusMsg').classList.remove('err');
+    document.querySelectorAll('#lpanelVerify .otp-inputs input').forEach(inp=>{
+      inp.value = '';
+      inp.classList.remove('filled');
+    });
+    document.querySelectorAll('#lpanelVerify .otp-inputs').forEach(g=>g.classList.remove('shake'));
+    const verifyBtn = document.getElementById('verifyBtn');
+    verifyBtn.disabled = false;
+    verifyBtn.innerHTML = 'تأكيد<svg viewBox="0 0 24 24" width="16" height="16"><path fill="none" stroke="currentColor" stroke-dasharray="12" stroke-linecap="round" stroke-linejoin="round" stroke-width="2.6" d="M8 12l7 -7M8 12l7 7"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.4s" values="12;0"/></path></svg>';
+
+    const emailInputs = document.querySelectorAll('#otpEmailGroup input');
+    emailInputs[emailInputs.length - 1].focus();
+  }
+
+  function stopVerifyResendTimer(){
+    if(verifyResendIntervalId){
+      clearInterval(verifyResendIntervalId);
+      verifyResendIntervalId = null;
+    }
+  }
+
+  function startVerifyResendTimer(seconds){
+    stopVerifyResendTimer();
+    let remaining = seconds || otpResendCooldownSeconds();
+    const resendBtn = document.getElementById('verifyResendBtn');
+    resendBtn.disabled = true;
+    resendBtn.innerHTML = 'إعادة الإرسال خلال <span class="timer" id="verifyResendTimer">00:00</span>';
+    const timerEl = document.getElementById('verifyResendTimer');
+
+    const render = ()=>{
+      const m = String(Math.floor(remaining / 60)).padStart(2, '0');
+      const s = String(remaining % 60).padStart(2, '0');
+      timerEl.textContent = `${m}:${s}`;
+    };
+    render();
+
+    verifyResendIntervalId = setInterval(()=>{
+      remaining--;
+      if(remaining <= 0){
+        stopVerifyResendTimer();
+        resendBtn.disabled = false;
+        resendBtn.innerHTML = 'إعادة الإرسال';
+        return;
+      }
+      render();
+    }, 1000);
+  }
+
+  async function resendVerifyCodes(){
+    const resendBtn = document.getElementById('verifyResendBtn');
+    if(resendBtn.disabled) return;
+
+    const email = document.getElementById('regEmail').value.trim();
+    const mobile = document.getElementById('regMobile').value.trim();
+    const originalHtml = resendBtn.innerHTML;
+    resendBtn.disabled = true;
+
+    try{
+      const res = await fetch('/register/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken() },
+        body: JSON.stringify({ email, mobile })
+      });
+      const data = await res.json().catch(()=>({}));
+
+      if(!res.ok){
+        showToast(data.message || 'توجد مشكلة في عملية التحقق', 'warning');
+        resendBtn.disabled = false;
+        resendBtn.innerHTML = originalHtml;
+        return;
+      }
+
+      startVerifyResendTimer(otpResendCooldownSeconds());
+      showToast('تم إرسال رمزين جديدين إلى بريدك وجوالك', false);
+    } catch(err){
+      showToast('توجد مشكلة في عملية التحقق', 'warning');
+      resendBtn.disabled = false;
+      resendBtn.innerHTML = originalHtml;
+    }
+  }
+
+  async function confirmVerification(btn){
+    const emailCode = getOtpValue('otpEmailGroup');
+    const mobileCode = getOtpValue('otpMobileGroup');
+    const errorEl = document.getElementById('verifyError');
+    errorEl.style.display = 'none';
+
+    if(emailCode.length < 6 || mobileCode.length < 6){
+      errorEl.textContent = 'يرجى إدخال الرمزين المكونين من 6 أرقام كاملين';
+      errorEl.style.display = 'block';
+      return;
+    }
+
+    const email = document.getElementById('regEmail').value.trim();
+    const mobile = document.getElementById('regMobile').value.trim();
+
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `${SPIN_RING_SM}جارٍ إنشاء الحساب...`;
+
+    try{
+      const formData = new FormData();
+      formData.append('email', email);
+      formData.append('mobile', mobile);
+      formData.append('emailCode', emailCode);
+      formData.append('mobileCode', mobileCode);
+      const photoInput = document.getElementById('regPhoto');
+      if(photoInput.files && photoInput.files[0]){
+        formData.append('photo', photoInput.files[0]);
+      }
+
+      const res = await fetch('/register/complete-profile', { method: 'POST', headers: { 'X-CSRF-TOKEN': csrfToken() }, body: formData });
+      const data = await res.json().catch(()=>({}));
+
+      if(!res.ok){
+        if(data.message === 'خطأ في عملية التحقق'){
+          errorEl.textContent = data.message;
+          errorEl.style.display = 'block';
+          document.querySelectorAll('#lpanelVerify .otp-inputs').forEach(g=>{
+            g.classList.remove('shake');
+            void g.offsetWidth;
+            g.classList.add('shake');
+          });
+        } else {
+          showToast(data.message || 'توجد مشكلة في عملية التحقق', 'warning');
+        }
+        return;
+      }
+
+      stopVerifyResendTimer();
+      showToast('تم إنشاء الحساب بنجاح — جاري التحويل...', true);
+      setTimeout(()=>{ window.location.href = data.redirectUrl || '/app'; }, 500);
+    } catch(err){
+      showToast('توجد مشكلة في عملية التحقق', 'warning');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = originalHtml;
+    }
+  }
+
+  function getOtpValue(groupId){
+    return [...document.querySelectorAll(`#${groupId} input`)]
+      .map(inp=>inp.value)
+      .join('');
+  }
+
+  document.querySelectorAll('.otp-inputs').forEach(group=>{
+    const inputs = [...group.querySelectorAll('input')];
+    inputs.forEach((inp, i)=>{
+      inp.addEventListener('input', ()=>{
+        inp.value = inp.value.replace(/[^0-9]/g, '').slice(0, 1);
+        inp.classList.toggle('filled', inp.value.length > 0);
+        if(inp.value && inputs[i - 1]) inputs[i - 1].focus();
+      });
+      inp.addEventListener('keydown', e=>{
+        if(e.key === 'Backspace' && !inp.value && inputs[i + 1]) inputs[i + 1].focus();
+        if(e.key === 'Tab' && !e.shiftKey){
+          e.preventDefault();
+          if(inputs[i - 1]) inputs[i - 1].focus();
+          else focusNextFieldAfterOtpGroup(group);
+        } else if(e.key === 'Tab' && e.shiftKey){
+          e.preventDefault();
+          if(inputs[i + 1]) inputs[i + 1].focus();
+          else focusPrevFieldBeforeOtpGroup(group);
+        }
+      });
+    });
+  });
+
+  function focusNextFieldAfterOtpGroup(group){
+    const groups = [...document.querySelectorAll('#lpanelVerify .otp-inputs')];
+    const idx = groups.indexOf(group);
+    if(groups[idx + 1]){
+      const nextInputs = groups[idx + 1].querySelectorAll('input');
+      nextInputs[nextInputs.length - 1].focus();
+    } else {
+      document.getElementById('verifyBtn').focus();
+    }
+  }
+
+  function focusPrevFieldBeforeOtpGroup(group){
+    const groups = [...document.querySelectorAll('#lpanelVerify .otp-inputs')];
+    const idx = groups.indexOf(group);
+    if(groups[idx - 1]){
+      groups[idx - 1].querySelector('input').focus();
+    }
+  }
+
+  document.querySelectorAll('#lpanelCompleteProfile input').forEach(inp=>{
+    inp.addEventListener('keydown', e=>{
+      if(e.key === 'Enter'){ e.preventDefault(); submitCompleteProfile(document.getElementById('registerBtn')); }
+    });
+  });
+  document.querySelectorAll('#lpanelVerify .otp-inputs input').forEach(inp=>{
+    inp.addEventListener('keydown', e=>{
+      if(e.key === 'Enter'){ e.preventDefault(); confirmVerification(document.getElementById('verifyBtn')); }
+    });
+  });
+
+  function showToast(msg, type){
+    return sharedShowToast(msg, type, SPIN_RING_SM);
+  }
+
+  function iconThemeDay(maskIdSuffix){
+    const maskId = 'thDayMask' + maskIdSuffix;
+    return `<svg viewBox="0 0 24 24" width="18" height="18"><defs><mask id="${maskId}"><path fill="#fff" d="M12 6c3.31 0 6 2.69 6 6c0 3.31 -2.69 6 -6 6c-3.31 0 -6 -2.69 -6 -6c0 -3.31 2.69 -6 6 -6Z"><animate fill="freeze" attributeName="d" dur="0.4s" values="M12 2c5.52 0 10 4.48 10 10c0 5.52 -4.48 10 -10 10c-5.52 0 -10 -4.48 -10 -10c0 -5.52 4.48 -10 10 -10Z;M12 6c3.31 0 6 2.69 6 6c0 3.31 -2.69 6 -6 6c-3.31 0 -6 -2.69 -6 -6c0 -3.31 2.69 -6 6 -6Z"/></path><path d="M22 -4c3.31 0 6 2.69 6 6c0 3.31 -2.69 6 -6 6c-3.31 0 -6 -2.69 -6 -6c0 -3.31 2.69 -6 6 -6Z"><animate fill="freeze" attributeName="d" dur="0.4s" values="M18 -4c5.52 0 10 4.48 10 10c0 5.52 -4.48 10 -10 10c-5.52 0 -10 -4.48 -10 -10c0 -5.52 4.48 -10 10 -10Z;M22 -4c3.31 0 6 2.69 6 6c0 3.31 -2.69 6 -6 6c-3.31 0 -6 -2.69 -6 -6c0 -3.31 2.69 -6 6 -6Z"/><set fill="freeze" attributeName="opacity" begin="0.4s" to="0"/></path></mask></defs><path fill="currentColor" d="M0 0h24v24H0z" mask="url(#${maskId})"/><g fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M12 21v1M21 12h1M12 3v-1M3 12h-1" opacity="0"><set fill="freeze" attributeName="opacity" begin="0.4s" to="1"/><animate fill="freeze" attributeName="d" begin="0.4s" dur="0.2s" values="M12 19v1M19 12h1M12 5v-1M5 12h-1;M12 21v1M21 12h1M12 3v-1M3 12h-1"/></path><path d="M18.5 18.5l0.5 0.5M18.5 5.5l0.5 -0.5M5.5 5.5l-0.5 -0.5M5.5 18.5l-0.5 0.5" opacity="0"><set fill="freeze" attributeName="opacity" begin="0.6s" to="1"/><animate fill="freeze" attributeName="d" begin="0.6s" dur="0.2s" values="M17 17l0.5 0.5M17 7l0.5 -0.5M7 7l-0.5 -0.5M7 17l-0.5 0.5;M18.5 18.5l0.5 0.5M18.5 5.5l0.5 -0.5M5.5 5.5l-0.5 -0.5M5.5 18.5l-0.5 0.5"/></path></g></svg>`;
+  }
+  const ICON_THEME_DARK = '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" fill-opacity="0" stroke="currentColor" stroke-dasharray="62" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3c-4.97 0 -9 4.03 -9 9c0 4.97 4.03 9 9 9c3.53 0 6.59 -2.04 8.06 -5c0 0 -6.06 1.5 -9.06 -3c-3 -4.5 1 -10 1 -10Z"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.6s" values="62;0"/><animate fill="freeze" attributeName="fill-opacity" begin="0.6s" dur="0.4s" to="1"/></path></svg>';
+  const ICON_REFRESH = '<svg viewBox="0 0 24 24" width="15" height="15"><path fill="none" stroke="currentColor" stroke-dasharray="48" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.25 14c0.89 3.45 4.02 6 7.75 6c4.42 0 8 -3.58 8 -8c0 -4.42 -3.58 -8 -8 -8c-2.39 0 -4.53 1.05 -6 2.71l-2 2.29"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.6s" values="48;0"/></path><path fill="currentColor" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" d="M5.63 7.38l-2.13 -2.13l0 4.25l4.25 0Z" opacity="0"><set fill="freeze" attributeName="opacity" begin="0.6s" to="1"/><animate fill="freeze" attributeName="d" begin="0.6s" dur="0.2s" values="M4 9l0 0l0 0l0 0Z;M5.63 7.38l-2.13 -2.13l0 4.25l4.25 0Z"/></path></svg>';
+  const ICON_BRAND = '<svg viewBox="0 0 48 48" width="18" height="18"><path fill="currentColor" fill-opacity="0" stroke="currentColor" pathLength="1" stroke-dasharray="1" stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M18 6a6 6 0 0 0 12 0h5.455L42 15.818l-5.727 4.91V42H11.727V20.727L6 15.818L12.546 6Z"><animate fill="freeze" attributeName="stroke-dashoffset" dur="0.7s" values="1;0"/><animate fill="freeze" attributeName="fill-opacity" begin="0.7s" dur="0.4s" to="1"/></path></svg>';
+
+  function renderThemeIcon(){
+    const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+    document.getElementById('themeToggle').innerHTML = isDark ? ICON_THEME_DARK : iconThemeDay('Topbar');
+    document.getElementById('ctxThemeLabel').textContent = isDark ? 'التبديل إلى المظهر الفاتح' : 'التبديل إلى المظهر الداكن';
+    document.getElementById('ctxThemeIcon').innerHTML = isDark ? ICON_THEME_DARK : iconThemeDay('Ctx');
+    renderCtxBrandIcon();
+  }
+  function renderCtxBrandIcon(){
+    const isAmana = document.documentElement.getAttribute('data-brand')==='amana';
+    document.getElementById('ctxBrandLabel').textContent = isAmana ? 'التبديل إلى ثيم الأزرق' : 'التبديل إلى ثيم الأمانه';
+    document.getElementById('ctxBrandIcon').innerHTML = ICON_BRAND;
+  }
+  function toggleTheme(){
+    const isDark = document.documentElement.getAttribute('data-theme')==='dark';
+    if(isDark){ document.documentElement.removeAttribute('data-theme'); localStorage.setItem('pmis-theme','light'); }
+    else{ document.documentElement.setAttribute('data-theme','dark'); localStorage.setItem('pmis-theme','dark'); }
+    renderThemeIcon();
+  }
+  function toggleBrand(){
+    const isAmana = document.documentElement.getAttribute('data-brand')==='amana';
+    const brand = isAmana ? 'blue' : 'amana';
+    if(brand==='amana') document.documentElement.setAttribute('data-brand','amana');
+    else document.documentElement.removeAttribute('data-brand');
+    localStorage.setItem('pmis-brand', brand);
+    renderCtxBrandIcon();
+  }
+  renderThemeIcon();
+  document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+  document.getElementById('ctxRefreshIcon').innerHTML = ICON_REFRESH;
+
+  function closeCtxMenu(){
+    document.getElementById('ctxMenu').classList.remove('open');
+  }
+  document.addEventListener('contextmenu', (e)=>{
+    e.preventDefault();
+    const menu = document.getElementById('ctxMenu');
+    menu.classList.add('open');
+    const menuRect = menu.getBoundingClientRect();
+    const x = Math.min(e.clientX, window.innerWidth - menuRect.width - 8);
+    const y = Math.min(e.clientY, window.innerHeight - menuRect.height - 8);
+    menu.style.left = Math.max(8, x) + 'px';
+    menu.style.top = Math.max(8, y) + 'px';
+  });
+  document.getElementById('ctxThemeBtn').addEventListener('click', (e)=>{
+    e.stopPropagation();
+    toggleTheme();
+    closeCtxMenu();
+  });
+  document.getElementById('ctxBrandBtn').addEventListener('click', (e)=>{
+    e.stopPropagation();
+    toggleBrand();
+    closeCtxMenu();
+  });
+  document.getElementById('ctxRefreshBtn').addEventListener('click', (e)=>{
+    e.stopPropagation();
+    window.location.reload();
+  });
+  document.addEventListener('click', closeCtxMenu);
+
+  document.querySelectorAll('#lpanelCompleteProfile .toggle-eye').forEach(btn=>{
+    btn.innerHTML = iconEyeSlashed();
+  });
+
+  const NAFATH_ERROR_MESSAGES = {
+    connect: 'تعذر الاتصال بخدمة نفاذ، يرجى المحاولة مرة أخرى',
+    expired: 'انتهت صلاحية جلسة الدخول عبر نفاذ، يرجى المحاولة مرة أخرى',
+    not_registered: 'هذا المستخدم غير مسجل بالنظام',
+    role_mismatch: 'لا يوجد لديك الصلاحية للدخول على هذه الصفة'
+  };
+
+  const NAFATH_PENDING_KEY = 'pmisNafathPending';
+  const NAFATH_PENDING_MAX_AGE_MS = 30 * 60 * 1000;
+
+  function markNafathAttemptPending(){
+    try { localStorage.setItem(NAFATH_PENDING_KEY, String(Date.now())); } catch(e) {}
+  }
+
+  function clearNafathAttemptPending(){
+    try { localStorage.removeItem(NAFATH_PENDING_KEY); } catch(e) {}
+  }
+  @{
+      // Only ever one of the fixed literals AuthController's NafathLogin/NafathCallback
+      // redirect with (see NAFATH_ERROR_MESSAGES above) - anything else is ignored.
+      var nafathErrorKey = ViewBag.NafathError as string;
+      var nafathErrorJs = nafathErrorKey is "connect" or "expired" or "not_registered" or "role_mismatch" ? $"'{nafathErrorKey}'" : "null";
+  }
+  const nafathError = @Html.Raw(nafathErrorJs);
+  if(nafathError && NAFATH_ERROR_MESSAGES[nafathError]){
+    showToast(NAFATH_ERROR_MESSAGES[nafathError], 'warning');
+  }
+
+  @{
+      bool isLoggedOut = ViewBag.LoggedOut;
+      var loggedOutJs = isLoggedOut.ToString().ToLowerInvariant();
+  }
+  const loggedOut = @Html.Raw(loggedOutJs);
+  if(loggedOut){
+    showToast('تم تسجيل الخروج بنجاح', 'success');
+  }
+
+  @{
+      // Round-tripped through the server-validated enum name in ViewBag, never raw query input.
+      var confirmReauthRole = ViewBag.ConfirmReauthRole as string;
+      var confirmReauthJs = confirmReauthRole is "ContractorConsultant" or "P3OOfficer" or "SystemAdministrator"
+          ? $"'{confirmReauthRole}'" : "null";
+  }
+  const confirmReauthRole = @Html.Raw(confirmReauthJs);
+  if(confirmReauthRole){
+    showToast('تم تسجيل خروجك. للدخول مرة أخرى يرجى التأكيد عبر نفاذ', 'warning');
+    const reauthBtn = document.getElementById('reauthConfirmBtn');
+    const reauthPanel = document.getElementById('reauthConfirm');
+    if(reauthPanel && reauthBtn){
+      document.getElementById('lpanel1').classList.remove('active');
+      reauthPanel.classList.add('active');
+
+      const node1 = document.getElementById('lnode1');
+      node1.classList.add('done');
+      node1.classList.remove('active');
+      document.getElementById('lnode2').classList.add('active');
+      renderLoginStepper();
+      reauthBtn.addEventListener('click', ()=>{
+        reauthBtn.disabled = true;
+        reauthBtn.innerHTML = `${SPIN_RING_SM}جارٍ التحويل إلى نفاذ...`;
+        markNafathAttemptPending();
+        window.location.href = '/login/nafath?confirmed=true&role=' + encodeURIComponent(confirmReauthRole);
+      });
+    }
+  }
+
+  @{
+      var pendingNationalIdJs = ViewBag.PendingNationalId is string pid
+          ? System.Text.Json.JsonSerializer.Serialize(pid) : "null";
+      var pendingFullNameJs = ViewBag.PendingFullName is string pfn
+          ? System.Text.Json.JsonSerializer.Serialize(pfn) : "null";
+      var pendingArabicFirstNameJs = ViewBag.PendingArabicFirstName is string pafn
+          ? System.Text.Json.JsonSerializer.Serialize(pafn) : "null";
+      var pendingArabicFatherNameJs = ViewBag.PendingArabicFatherName is string pafan
+          ? System.Text.Json.JsonSerializer.Serialize(pafan) : "null";
+      var pendingArabicGrandFatherNameJs = ViewBag.PendingArabicGrandFatherName is string pagfn
+          ? System.Text.Json.JsonSerializer.Serialize(pagfn) : "null";
+      var pendingArabicFamilyNameJs = ViewBag.PendingArabicFamilyName is string pafm
+          ? System.Text.Json.JsonSerializer.Serialize(pafm) : "null";
+      var pendingArabicNationalityJs = ViewBag.PendingArabicNationality is string pan
+          ? System.Text.Json.JsonSerializer.Serialize(pan) : "null";
+      var pendingGenderJs = ViewBag.PendingGender is string pg
+          ? System.Text.Json.JsonSerializer.Serialize(pg) : "null";
+  }
+  const pendingNationalId = @Html.Raw(pendingNationalIdJs);
+  const pendingFullName = @Html.Raw(pendingFullNameJs);
+  const pendingArabicFirstName = @Html.Raw(pendingArabicFirstNameJs);
+  const pendingArabicFatherName = @Html.Raw(pendingArabicFatherNameJs);
+  const pendingArabicGrandFatherName = @Html.Raw(pendingArabicGrandFatherNameJs);
+  const pendingArabicFamilyName = @Html.Raw(pendingArabicFamilyNameJs);
+  const pendingArabicNationality = @Html.Raw(pendingArabicNationalityJs);
+  const pendingGender = @Html.Raw(pendingGenderJs);
+  if(pendingNationalId || pendingFullName){
+    document.getElementById('pendingNationalId').textContent = pendingNationalId || '—';
+    document.getElementById('pendingFullName').textContent = pendingFullName || '—';
+    document.getElementById('pendingArabicFirstName').textContent = pendingArabicFirstName || '—';
+    document.getElementById('pendingArabicFatherName').textContent = pendingArabicFatherName || '—';
+    document.getElementById('pendingArabicGrandFatherName').textContent = pendingArabicGrandFatherName || '—';
+    document.getElementById('pendingArabicFamilyName').textContent = pendingArabicFamilyName || '—';
+    document.getElementById('pendingArabicNationality').textContent = pendingArabicNationality || '—';
+    document.getElementById('pendingGender').textContent = pendingGender || '—';
+    document.querySelector('.lstepper').style.display = 'none';
+    document.getElementById('lpanel1').classList.remove('active');
+    document.getElementById('lpanelCompleteProfile').classList.add('active');
+    document.getElementById('topTitle').textContent = 'إكمال بيانات الحساب';
+  }
+
+  const nafathOutcomeHandled = Boolean(nafathError) || loggedOut || Boolean(confirmReauthRole)
+    || Boolean(pendingNationalId) || Boolean(pendingFullName);
+  if(nafathOutcomeHandled){
+    clearNafathAttemptPending();
+  } else {
+    try {
+      const pendingSince = parseInt(localStorage.getItem(NAFATH_PENDING_KEY) || '', 10);
+      if(pendingSince && (Date.now() - pendingSince) < NAFATH_PENDING_MAX_AGE_MS){
+        showToast('حدثت مشكلة اثناء عملية التحقق, الرجاء المحاولة مرة اخرى', 'warning');
+      }
+    } catch(e) {}
+    clearNafathAttemptPending();
+  }
+</script>
+</body>
+</html>

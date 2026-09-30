@@ -1,0 +1,65 @@
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    hostname: pmis-app
+    container_name: pmis-app
+    restart: unless-stopped
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      clamav:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_HTTP_PORTS: "8080"
+      ConnectionStrings__PmisDatabase: "Server=sqlserver,1433;Database=PMIS;User Id=sa;Password=${DB_PASSWORD};TrustServerCertificate=True"
+      ConnectionStrings__MongoDb: "mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongodb:27017/?authSource=admin"
+      MongoDb__DatabaseName: "pmis"
+      MinIO__Endpoint: "minio:9000"
+      MinIO__AccessKey: ${MINIO_ROOT_USER}
+      MinIO__SecretKey: ${MINIO_ROOT_PASSWORD}
+      MinIO__BucketName: "pmis-attachments"
+      MinIO__UseSsl: "false"
+      ConnectionStrings__Redis: "redis:6379,password=${REDIS_PASSWORD}"
+      ClamAv__Host: "clamav"
+      ClamAv__Port: "3310"
+      Nafath__IamSsoUrl: ${Nafath__IamSsoUrl}
+      Nafath__GetTokenUrl: ${Nafath__GetTokenUrl}
+      Nafath__UserClaimsUrl: ${Nafath__UserClaimsUrl}
+      Nafath__IamLoginUrl: ${Nafath__IamLoginUrl}
+      Nafath__IamLogoutUrl: ${Nafath__IamLogoutUrl}
+      Nafath__AppKey: ${Nafath__AppKey}
+
+  caddy:
+    image: caddy:2-alpine
+    hostname: caddy
+    container_name: caddy
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:2019/config/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  caddy_data:
+  caddy_config:

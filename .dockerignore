@@ -1,0 +1,14 @@
+
+**/bin/
+**/obj/
+
+Scripts/
+
+Tests/
+
+.git/
+.claude/
+.sonarqube/
+.vs/
+Docs/
+*.md
